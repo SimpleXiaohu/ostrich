@@ -1,0 +1,8 @@
+;test regex -214(?:[0-68-9]\d{6}|7[0-35-9]\d{5}|74[0-35-9]\d{4}|744[0-35-9]\d{3}|7444[02-9]\d\d|74441[0-24-9]\d|744413[0-24-9])
+(declare-const X String)
+(assert (str.in_re X (re.++ (str.to_re "-") (re.++ (str.to_re "214") (re.union (re.union (re.union (re.union (re.union (re.union (re.++ (re.union (re.range "0" "68") (re.union (str.to_re "-") (str.to_re "9"))) ((_ re.loop 6 6) (re.range "0" "9"))) (re.++ (str.to_re "7") (re.++ (re.union (re.range "0" "35") (re.union (str.to_re "-") (str.to_re "9"))) ((_ re.loop 5 5) (re.range "0" "9"))))) (re.++ (str.to_re "74") (re.++ (re.union (re.range "0" "35") (re.union (str.to_re "-") (str.to_re "9"))) ((_ re.loop 4 4) (re.range "0" "9"))))) (re.++ (str.to_re "744") (re.++ (re.union (re.range "0" "35") (re.union (str.to_re "-") (str.to_re "9"))) ((_ re.loop 3 3) (re.range "0" "9"))))) (re.++ (str.to_re "7444") (re.++ (re.range "02" "9") (re.++ (re.range "0" "9") (re.range "0" "9"))))) (re.++ (str.to_re "74441") (re.++ (re.union (re.range "0" "24") (re.union (str.to_re "-") (str.to_re "9"))) (re.range "0" "9")))) (re.++ (str.to_re "744413") (re.union (re.range "0" "24") (re.union (str.to_re "-") (str.to_re "9")))))))))
+; sanitize danger characters:  < > ' " &
+(assert (not (str.in_re X (re.++ re.all (re.union (str.to_re "\u{3c}") (str.to_re "\u{3e}") (str.to_re "\u{27}") (str.to_re "\u{22}") (str.to_re "\u{26}")) re.all))))
+(assert (< 9 (str.len X)))
+(check-sat)
+(get-model)

@@ -1,0 +1,8 @@
+;test regex ^(?:\+?61|0)4 ?(?:(?:[01] ?[0-9]|2 ?[0-57-9]|3 ?[1-9]|4 ?[7-9]|5 ?[018]) ?[0-9]|3 ?0 ?[0-5])(?: ?[0-9]){5}$
+(declare-const X String)
+(assert (str.in_re X (re.++ (re.++ (str.to_re "") (re.++ (re.union (re.++ (re.opt (str.to_re "+")) (str.to_re "61")) (str.to_re "0")) (re.++ (str.to_re "4") (re.++ (re.opt (str.to_re " ")) (re.++ (re.union (re.++ (re.union (re.union (re.union (re.union (re.++ (str.to_re "01") (re.++ (re.opt (str.to_re " ")) (re.range "0" "9"))) (re.++ (str.to_re "2") (re.++ (re.opt (str.to_re " ")) (re.union (re.range "0" "57") (re.union (str.to_re "-") (str.to_re "9")))))) (re.++ (str.to_re "3") (re.++ (re.opt (str.to_re " ")) (re.range "1" "9")))) (re.++ (str.to_re "4") (re.++ (re.opt (str.to_re " ")) (re.range "7" "9")))) (re.++ (str.to_re "5") (re.++ (re.opt (str.to_re " ")) (str.to_re "018")))) (re.++ (re.opt (str.to_re " ")) (re.range "0" "9"))) (re.++ (str.to_re "3") (re.++ (re.opt (str.to_re " ")) (re.++ (str.to_re "0") (re.++ (re.opt (str.to_re " ")) (re.range "0" "5")))))) ((_ re.loop 5 5) (re.++ (re.opt (str.to_re " ")) (re.range "0" "9")))))))) (str.to_re ""))))
+; sanitize danger characters:  < > ' " &
+(assert (not (str.in_re X (re.++ re.all (re.union (str.to_re "\u{3c}") (str.to_re "\u{3e}") (str.to_re "\u{27}") (str.to_re "\u{22}") (str.to_re "\u{26}")) re.all))))
+(assert (< 9 (str.len X)))
+(check-sat)
+(get-model)

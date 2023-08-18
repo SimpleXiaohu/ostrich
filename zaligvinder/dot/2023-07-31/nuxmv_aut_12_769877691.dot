@@ -1,0 +1,9 @@
+
+      digraph G {
+        rankdir=LR;
+        init [shape=point];
+        node [shape = doublecircle];
+        s3
+        node [shape = circle];
+        init -> s2;
+        s2 -> s3 [label = "65,65:()"]}

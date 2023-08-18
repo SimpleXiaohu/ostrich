@@ -1,0 +1,23 @@
+
+      digraph G {
+        rankdir=LR;
+        init [shape=point];
+        node [shape = doublecircle];
+        s2
+        node [shape = circle];
+        init -> s12;
+        s17 -> s2 [label = "52,52:()"]
+        s16 -> s11 [label = "54,54:()"]
+        s15 -> s4 [label = "99,99:()"]
+        s14 -> s8 [label = "116,116:()"]
+        s13 -> s7 [label = "56,56:()"]
+        s12 -> s3 [label = "95,95:()"]
+        s11 -> s13 [label = "56,56:()"]
+        s10 -> s6 [label = "50,50:()"]
+        s9 -> s16 [label = "49,49:()"]
+        s8 -> s15 [label = "109,109:()"]
+        s7 -> s10 [label = "54,54:()"]
+        s6 -> s17 [label = "54,54:()"]
+        s5 -> s14 [label = "117,117:()"]
+        s4 -> s9 [label = "61,61:()"]
+        s3 -> s5 [label = "95,95:()"]}

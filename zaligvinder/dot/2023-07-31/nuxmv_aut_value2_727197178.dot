@@ -1,0 +1,15 @@
+
+      digraph G {
+        rankdir=LR;
+        init [shape=point];
+        node [shape = doublecircle];
+        s3 s2
+        node [shape = circle];
+        init -> s4;
+        s4 -> s4 [label = "45,65535:(1,1)"]
+        s4 -> s4 [label = "0,43:(1,1)"]
+        s4 -> s3 [label = "10,10:(0,1)"]
+        s3 -> s2 [label = "0,43:(0,1)"]
+        s3 -> s2 [label = "45,65535:(0,1)"]
+        s2 -> s2 [label = "0,43:(0,1)"]
+        s2 -> s2 [label = "45,65535:(0,1)"]}

@@ -1,0 +1,7 @@
+(set-logic QF_SLIA)
+(declare-fun var0 () String)
+(assert (str.in_re var0 (re.++ ((_ re.loop 1 4) (re.++ ((_ re.loop 1 16) (str.to_re "f")) (re.++ ((_ re.loop 2 12) (str.to_re ")}4")) (re.++ ((_ re.loop 1 20) (str.to_re "AL")) ((_ re.loop 5 17) (str.to_re ">")))))) (re.++ ((_ re.loop 0 6) (re.++ ((_ re.loop 1 18) (str.to_re "y2M")) (re.++ ((_ re.loop 0 9) (str.to_re "j5{")) (re.++ ((_ re.loop 0 5) (str.to_re "h+o")) ((_ re.loop 1 11) (str.to_re "P")))))) (re.++ ((_ re.loop 1 6) (re.++ ((_ re.loop 5 20) (str.to_re "u)")) (re.++ ((_ re.loop 5 10) (str.to_re "2sj")) (re.++ ((_ re.loop 1 19) (str.to_re "Es")) ((_ re.loop 5 15) (str.to_re "=1H")))))) ((_ re.loop 0 4) (re.++ ((_ re.loop 2 7) (str.to_re "Q5")) (re.++ ((_ re.loop 2 16) (str.to_re "f")) (re.++ ((_ re.loop 4 14) (str.to_re "KE}")) ((_ re.loop 3 11) (str.to_re "Wf")))))))))))
+(assert (not (str.in_re var0 (re.++ (re.* re.allchar) (re.++ (re.union (str.to_re "<") (re.union (str.to_re ">") (re.union (str.to_re "'") (re.union (str.to_re "\u0022") (str.to_re "&"))))) (re.* re.allchar))))))
+(assert (<= 50 (str.len var0)))
+(check-sat)
+(get-model)

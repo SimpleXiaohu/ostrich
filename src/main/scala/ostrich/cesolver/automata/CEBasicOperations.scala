@@ -221,14 +221,14 @@ object CEBasicOperations {
     // removeDeadState(compAut).toDot("my_complement")
     // aut.toDot("origin_aut")
     // afterDetermine.toDot("determined_aut")
-    val baut = toBricsAutomaton(aut)
-    val res = BricsAutomatonWrapper(
-      BasicOperations.complement(baut)
-    )
+    // val baut = toBricsAutomaton(aut)
+    // val res = BricsAutomatonWrapper(
+    //   BasicOperations.complement(baut)
+    // )
     // baut.determinize()
     // BricsAutomatonWrapper(baut).toDot("brics_aut_determined")
     // res.toDot("brics_complement")
-    res
+    // res
   }
 
   def complement(

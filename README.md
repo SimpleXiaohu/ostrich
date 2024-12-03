@@ -4,7 +4,7 @@ OSTRICH-RECL is the extension of [OSTRICH](https://github.com/uuverifiers/ostric
 
 ## Using OSTRICH-RECL
 
-After installing [the Scala Build tool (SBT)](https://www.scala-sbt.org/), you can assemble a JAR file using `sbt assembly`. To run it, use either the `ostrichCEA` script in the root folder.
+After installing [the Scala Build tool (SBT)](https://www.scala-sbt.org/), you can assemble a JAR file using `sbt assembly`. To run it, use the `ostrichCEA` script in the root folder.
 
 See `./ostrichCEA -h` for more options.
 

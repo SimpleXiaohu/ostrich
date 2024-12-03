@@ -51,7 +51,6 @@ lazy val commonSettings = Seq(
 //
   scalaVersion          := "2.13.14",
   scalacOptions         += "-deprecation",
-  scalacOptions         += "-Wunused",
   fork in run           := true,
   cancelable in Global  := true,
 //

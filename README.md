@@ -13,7 +13,7 @@ Regex-Counting and String-Length]. This work is a subsequent of [OSTRICH+](https
 
 ## Web Interface
 
-For experiments, OSTRICH-RECL can also be used through its [web interface.](https://eldarica.org/ostrich/) with cea backend.
+For experiments, OSTRICH-RECL can also be used through its [web interface.](https://eldarica.org/ostrich-popl24/) with Cost-enriched backend.
 
 ## Input Format
 

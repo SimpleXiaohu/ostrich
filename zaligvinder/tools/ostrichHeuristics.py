@@ -8,9 +8,9 @@ import timer
 
 
 def run(params, eq, timeout, ploc, wd):
-    path = ploc.findProgram("OstrichCEA")
+    path = ploc.findProgram("Ostrich")
     if not path:
-        raise "OstrichCEA Not in Path"
+        raise "Ostrich Not in Path"
 
     (fd, smtfile) = tempfile.mkstemp(suffix=".smt2")
 
@@ -32,6 +32,7 @@ def run(params, eq, timeout, ploc, wd):
                     path,
                     "+quiet",
                     "+incremental",
+                    "-length=on",
                     "-inputFormat=smtlib",
                     "-timeout=" + str(timeout) + "000",
                 ] + params + [smtfile],
@@ -70,12 +71,10 @@ def run(params, eq, timeout, ploc, wd):
 def addRunner(addto):
     from functools import partial
     params = {
-            #   "all":                     [],
-            #   "no-nested":               ["-countUnwindBy=meetFirst"],
-            #   "no-find-model":           ["-findModelBy=registers", "-searchStringBy=random"],
-            #   "no-comp":                 ["-compApprox"],
-            #   "no-simplify-aut":         ["-simplyAutByVec"],
-              "all-off":                 ["-countUnwindBy=meetFirst", "-findModelBy=registers", "-searchStringBy=random", "-compApprox", "-simplyAutByVec"],
+              "Prop-FWD":               ["-nielsenSplitter", "+forwardPropagation"],
+              "Prop-BWD":               ["-nielsenSplitter", "+backwardPropagation"],
+              "Prop-FWD-BWD":           ["-nielsenSplitter", "+forwardPropagation", "+backwardPropagation"],
+              "Prop-FWD-BWD-Nielsen":   ["+nielsenSplitter", "+forwardPropagation", "+backwardPropagation"]
             }
     for i in params.keys():
         addto['OstrichCEA-'+i] = partial(run, params[i])

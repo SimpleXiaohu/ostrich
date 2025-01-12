@@ -2,12 +2,19 @@ import subprocess
 import tempfile
 import os
 import shutil
-import utils
 import sys
+
+# Get the parent directory of the current script
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+# Add the parent directory to the Python path so it can find utils.py
+sys.path.append(parent_dir)
+
+# Now you can import utils
+import utils
 import timer
 
 
-# path = utils.findProgram ("Z3BINARY","z3")
 
 
 def run(eq, timeout, ploc, wd):
@@ -67,4 +74,4 @@ def addRunner(addto):
 
 
 if __name__ == "__main__":
-    print(run(sys.argv[1], None))
+    print(run(sys.argv[1], None, utils.JSONProgramConfig(), None).output)

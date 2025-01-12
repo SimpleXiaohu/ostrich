@@ -20,6 +20,12 @@
 		},
 		"OstrichCEA" : {
 				"path" : "/home/hudh/github/ostrich/zaligvinder/../ostrichCEA"
+		},
+		"Z3alpha" : {
+				"path" : "/home/hudh/github/ostrich/zaligvinder/SolverBinaries/z3alpha/z3alpha.py"
+		},
+		"Z3noodler" : {
+				"path" : "/home/hudh/github/ostrich/zaligvinder/SolverBinaries/z3noodler/z3"
 		}
   }
 }

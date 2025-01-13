@@ -18,8 +18,8 @@
 		"Ostrich" : {
 				"path" : "/home/hudh/github/ostrich/zaligvinder/../ostrich"
 		},
-		"OstrichCEA" : {
-				"path" : "/home/hudh/github/ostrich/zaligvinder/../ostrichCEA"
+		"oldOstrich" : {
+				"path" : "/home/hudh/github/ostrich/zaligvinder/SolverBinaries/oldOstrich/ostrich"
 		},
 		"Z3alpha" : {
 				"path" : "/home/hudh/github/ostrich/zaligvinder/SolverBinaries/z3alpha/z3alpha.py"

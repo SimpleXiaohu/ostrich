@@ -22,8 +22,8 @@ cat << EOF > "$tPath/toolconfig.json"
 		"Ostrich" : {
 				"path" : "$tPath/../ostrich"
 		},
-		"OstrichCEA" : {
-				"path" : "$tPath/../ostrichCEA"
+		"oldOstrich" : {
+				"path" : "$tPath/SolverBinaries/oldOstrich/ostrich"
 		},
 		"Z3alpha" : {
 				"path" : "$tPath/SolverBinaries/z3alpha/z3alpha.py"

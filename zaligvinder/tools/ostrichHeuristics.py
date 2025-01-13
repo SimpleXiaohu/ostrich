@@ -77,7 +77,7 @@ def addRunner(addto):
               "Prop-FWD-BWD-Nielsen":   ["+nielsenSplitter", "+forwardPropagation", "+backwardPropagation"]
             }
     for i in params.keys():
-        addto['OstrichCEA-'+i] = partial(run, params[i])
+        addto['Ostrich-'+i] = partial(run, params[i])
 
 
 if __name__ == "__main__":

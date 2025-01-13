@@ -16,7 +16,7 @@ import tools.cvc5
 import tools.regExSolver
 import tools.z3seq
 import tools.z3str3
-import tools.ostrich
+import zaligvinder.tools.oldOstrich
 import tools.ostrichHeuristics
 
 tracks = (

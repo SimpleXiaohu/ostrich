@@ -16,3 +16,6 @@
 
 # ignore python cache
 __pycache__
+
+tmp/
+*.xlsx

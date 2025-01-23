@@ -9,36 +9,34 @@ import tools.cvc5
 import tools.regExSolver
 import tools.oldOstrich
 import tools.ostrichHeuristics
+import tools.ostrichHeuristics32
 import tools.z3noodler
 import tools.z3alpha
 import tools.trau
 # benchmarks
 from models import test
 from models import cav2025
+from models.cav2025 import random2000
+from models.cav2025 import random500
 
 tracks = (
-    test.getTrackData()
+    random500.getTrackData()
 ) + []
 
 solvers = {}
 for s in [
-    # tools.cvc5,
-    # tools.regExSolver,
-    # tools.oldOstrich,
-    # tools.ostrichHeuristics,
-    # tools.z3noodler,
-    # tools.z3alpha
-    tools.trau,
+    tools.cvc5,
+    tools.ostrichHeuristics32,
 ]:
     s.addRunner(solvers)
 
 timeout = 60
 ploc = utils.JSONProgramConfig()
 
-store = storage.SQLiteDB("cav2025-trau")
+store = storage.SQLiteDB("cav2025-ostrich32-random500")
 summaries = [summarygenerators.terminalResult, store.postTrackUpdate]
-# verifiers = ["Cvc5"]
-verifiers = [""]
+verifiers = ["Cvc5"]
+# verifiers = [""]
 testrunner(12).runTestSetup(
     tracks, solvers, voting.MajorityVoter(), summaries, store, timeout, ploc, verifiers
 )

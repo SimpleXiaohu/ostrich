@@ -71,10 +71,12 @@ def run(params, eq, timeout, ploc, wd):
 def addRunner(addto):
     from functools import partial
     params = {
-              "Prop-FWD":               ["-nielsenSplitter", "+forwardPropagation"],
-              "Prop-BWD":               ["-nielsenSplitter", "+backwardPropagation"],
-              "Prop-FWD-BWD":           ["-nielsenSplitter", "+forwardPropagation", "+backwardPropagation"],
-              "Prop-FWD-BWD-Nielsen":   ["+nielsenSplitter", "+forwardPropagation", "+backwardPropagation"]
+            #   "Prop-FWD":               ["-nielsenSplitter", "+forwardPropagation"],
+            #   "Prop-BWD":               ["-nielsenSplitter", "+backwardPropagation"],
+            #   "Prop-FWD-BWD":           ["-nielsenSplitter", "+forwardPropagation", "+backwardPropagation"],
+            #   "Prop-FWD-BWD-Nielsen":   ["+nielsenSplitter", "+forwardPropagation", "+backwardPropagation"]
+            "BWD-Nielsen": ["+nielsenSplitter", "+backwardPropagation"],
+            "Eager-FWD-BWD-Nielsen": ["+eager", "+nielsenSplitter", "+forwardPropagation", "+backwardPropagation"]
             }
     for i in params.keys():
         addto['Ostrich-'+i] = partial(run, params[i])

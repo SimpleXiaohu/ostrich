@@ -71,10 +71,10 @@ def run(params, eq, timeout, ploc, wd):
 def addRunner(addto):
     from functools import partial
     params = {
-              "ADT":           ["-stringSolver=ap.theories.strings.SeqStringTheory"],
+            #   "ADT":           ["-stringSolver=ap.theories.strings.SeqStringTheory"],
               "BWD":           [""],
-              "BWD-eager":     ["+eager"],
-              "CEA":           ["+cea"],
+            #   "BWD-eager":     ["+eager"],
+            #   "CEA":           ["+cea"],
             }
     for i in params.keys():
         addto['oldOstrich-'+i] = partial(run, params[i])

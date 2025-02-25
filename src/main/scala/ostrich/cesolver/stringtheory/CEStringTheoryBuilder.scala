@@ -45,7 +45,7 @@ import ap.CmdlMain
   */
 class CEStringTheoryBuilder extends OstrichStringTheoryBuilder {
 
-  override val name = "OSTRICH"
+  override val name = "OSTRICH-CEA"
   val version = "1.2.1"
 
   Console.withOut(Console.err) {

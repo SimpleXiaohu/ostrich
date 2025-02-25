@@ -76,8 +76,7 @@ object ParikhUtil {
 
   def findAcceptedWordByRegistersComplete(
       aut: CostEnrichedAutomatonBase,
-      registersModel: Map[ITerm, IdealInt],
-      flags: OFlags
+      registersModel: Map[ITerm, IdealInt]
   ): Option[Seq[Int]] = {
     log("Finding the accepted word by registers")
     log(s"Registers model: $registersModel")
@@ -146,8 +145,7 @@ object ParikhUtil {
 
   private def findAcceptedWordByTransitionTimes(
       aut: CostEnrichedAutomatonBase,
-      transModel: Map[Transition, IdealInt],
-      flags: OFlags
+      transModel: Map[Transition, IdealInt]
   ): Option[Seq[Int]] = {
     val transTimes = transModel
       .map { case (tran, value) => (tran, value.intValue) }
@@ -199,8 +197,7 @@ object ParikhUtil {
   // Compute the transitions times based on registers values and find the string by DFS for each transition
   def findAcceptedWordByTransTimesComplete(
       aut: CostEnrichedAutomatonBase,
-      registersModel: Map[ITerm, IdealInt],
-      flags: OFlags
+      registersModel: Map[ITerm, IdealInt]
   ): Option[Seq[Int]] = {
     log("Finding the accepted word by transition times")
     val termGen = TermGenerator()
@@ -231,7 +228,7 @@ object ParikhUtil {
           log(
             s"Transitions model: ${transModel.map(t => trans2Term(t._1) + " = " + t._2)}"
           )
-          return findAcceptedWordByTransitionTimes(aut, transModel, flags)
+          return findAcceptedWordByTransitionTimes(aut, transModel)
         case _ =>
           throw new Exception(
             "Cannot find the transtions model when finding the accepted word by transition times"
@@ -243,16 +240,15 @@ object ParikhUtil {
 
   def findAcceptedWord(
       auts: Seq[CostEnrichedAutomatonBase],
-      registersModel: Map[ITerm, IdealInt],
-      flags: OFlags
+      registersModel: Map[ITerm, IdealInt]
   ): Option[Seq[Int]] = {
     val aut = auts.reduce(_ product _)
     val registersLogrithmSum =
       registersModel.map(_._2.intValue).filter(_ > 0).map(math.log(_)).sum
     if (registersLogrithmSum > ParikhUtil.MIN_LOG_REG_SUM_PARIKH)
-      findAcceptedWordByTransTimesComplete(aut, registersModel, flags)
+      findAcceptedWordByTransTimesComplete(aut, registersModel)
     else
-      findAcceptedWordByRegistersComplete(aut, registersModel, flags)
+      findAcceptedWordByRegistersComplete(aut, registersModel)
 
   }
 

@@ -59,11 +59,14 @@ import ostrich.{OFlags, OstrichSolver}
 import ostrich.cesolver.preop.ConcatCEPreOp
 import ostrich.cesolver.util.ParikhUtil
 import ap.parser.ITerm
+import ap.theories.arrays.ExtArray
+import ap.types.Sort
 
 class CESolver(theory: CEStringTheory, flags: OFlags) {
 
   import OstrichSolver._
   import theory.{
+    _select,
     str_len,
     str_in_re,
     str_char_count,
@@ -205,7 +208,6 @@ class CESolver(theory: CEStringTheory, flags: OFlags) {
 
     ////////////////////////////////////////////////////////////////////////////
     // Collect positive literals
-
     for (a <- atoms.positiveLits) a.pred match {
       case `str_in_re` => {
         val regex = regexExtractor regexAsTerm a(1)
@@ -223,12 +225,16 @@ class CESolver(theory: CEStringTheory, flags: OFlags) {
       }
       case FunPred(f) if rexOps contains f =>
       // nothing
+      case `_select` => {
+        // TODO: handle array select based on the backward propagation
+        ParikhUtil.debugPrintln("hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh")
+      }
       case p if (theory.predicates contains p) =>
         stringFunctionTranslator(a) match {
           case Some((op, args, res)) =>
             funApps += ((op(), args, res))
           case _ =>
-            throw new Exception("Cannot handle literal " + a)
+            // throw new Exception("Cannot handle literal " + a)
         }
       case _ =>
       // nothing

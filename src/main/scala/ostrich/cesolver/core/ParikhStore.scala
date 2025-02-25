@@ -39,6 +39,7 @@ import ostrich.cesolver.automata.BricsAutomatonWrapper
 import ap.parser.ITerm
 import ostrich.OFlags
 import ap.parser.IFormula
+import ostrich.automata.Automaton
 
 class ParikhStore(
     t: ITerm,
@@ -110,10 +111,10 @@ class ParikhStore(
     val consideredAuts = new ArrayBuffer[CostEnrichedAutomatonBase]
     if (productAut.isEmpty) {
       // inconsistent, generate the minimal conflicted set
-      var tmpAut: CostEnrichedAutomatonBase =
+      var tmpAut: Automaton =
         BricsAutomatonWrapper.makeAnyString
       for (aut2 <- aut +: constraints) {
-        tmpAut = tmpAut product aut2
+        tmpAut = tmpAut & aut2
         consideredAuts += aut2
         if (tmpAut.isEmpty) {
           // found the minimal conflicted set

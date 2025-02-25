@@ -125,8 +125,7 @@ class UnaryFinalConstraints(
         ))
       val res = ParikhUtil.findAcceptedWord(
         Seq(findModelAut),
-        registersModel,
-        flags
+        registersModel
       )
       ParikhUtil.log(s"The model of ${strDataBaseId} is generated")
       res

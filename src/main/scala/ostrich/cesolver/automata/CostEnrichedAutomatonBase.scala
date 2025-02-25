@@ -52,7 +52,7 @@ import ostrich.cesolver.util.{ParikhUtil, TermGenerator, ConstSubstVisitor}
   * transition of CEFA contains a vector of integers, which is used to record
   * the cost of the transition. The cost of a word is the sum of the costs of
   * its transitions. A linear arithmetic constrait is used to restrict the cost
-  * of the word. For example, the accepting condition can be r < 10, where r is
+  * of the word. For example, the linear arithmetic can be r < 10, where r is
   * the register storing the cost and if r is length of the word, we get a
   * automation accepting words of length less than 10.
   */

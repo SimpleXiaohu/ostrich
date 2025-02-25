@@ -45,6 +45,7 @@ import ostrich.cesolver.preop._
 import ostrich.cesolver.automata.CostEnrichedAutomatonBase
 import ap.parser.Internal2InputAbsy
 import ostrich.OstrichStringFunctionTranslator
+import ostrich.cesolver.util.ParikhUtil.debugPrintln
 
 /** Class for mapping string constraints to string functions.
   */
@@ -206,6 +207,14 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
           }
           (op, List(a(0)), a(3))
         }
+
+      // TODO: add str_split and str_join
+
+      case FunPred(`str_split`) if (strDatabase isConcrete a(1))=> {
+        val splitStr = strDatabase.term2Str(a(1)).get
+        Some((() => SplitCEPreOp(splitStr), List(a(0)), a(2)))
+        
+      }
 
       case FunPred(`str_trim`) => {
         val op = () => {

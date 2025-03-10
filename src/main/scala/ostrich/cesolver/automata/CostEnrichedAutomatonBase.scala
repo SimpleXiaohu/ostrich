@@ -39,14 +39,13 @@ import scala.collection.mutable.{
 }
 import scala.collection.immutable.Map
 import scala.collection.mutable.ArrayStack
-import java.time.LocalDate
-import ostrich.cesolver.util.DotWriter
 import dk.brics.automaton.{State => BState}
 import dk.brics.automaton.BasicOperations
 import CEBasicOperations.toBricsAutomaton
-import java.io.File
 import ap.parser.{ITerm, IFormula, IExpression}
 import ostrich.cesolver.util.{ParikhUtil, TermGenerator, ConstSubstVisitor}
+import IExpression.{connectSimplify}
+import ap.parser.IBinJunctor
 
 /** This is the implementation of cost-enriched finite automaton(CEFA). Each
   * transition of CEFA contains a vector of integers, which is used to record
@@ -56,12 +55,11 @@ import ostrich.cesolver.util.{ParikhUtil, TermGenerator, ConstSubstVisitor}
   * the register storing the cost and if r is length of the word, we get a
   * automation accepting words of length less than 10.
   */
-class CostEnrichedAutomatonBase extends Automaton {
+abstract class CostEnrichedAutomatonBase extends Automaton {
 
   type State = BState
   type TLabel = (Char, Char)
   type Update = Seq[Int]
-  type Transition = (State, TLabel, State, Update)
 
   private var stateidx = 0
 
@@ -84,75 +82,6 @@ class CostEnrichedAutomatonBase extends Automaton {
 
   val LabelOps: TLabelOps[TLabel] = BricsTLabelOps
 
-  /** Compute states that can only be reached through words with some unique
-    * length
-    */
-  lazy val uniqueLengthStates: Map[State, Int] = {
-    val uniqueLengthStates = new MHashMap[State, Int]
-    val nonUniqueLengthStates = new MHashSet[State]
-    val todo = new ArrayStack[State]
-
-    uniqueLengthStates.put(initialState, 0)
-    todo push initialState
-
-    while (!todo.isEmpty) {
-      val s = todo.pop
-      if (nonUniqueLengthStates contains s) {
-        for ((to, _, _) <- outgoingTransitionsWithVec(s)) {
-          uniqueLengthStates -= to
-          if (nonUniqueLengthStates add to)
-            todo push to
-        }
-      } else {
-        val sLen = uniqueLengthStates(s)
-        for ((to, _, _) <- outgoingTransitionsWithVec(s))
-          (uniqueLengthStates get to) match {
-            case Some(oldLen) =>
-              if (oldLen != sLen + 1) {
-                uniqueLengthStates -= to
-                nonUniqueLengthStates += to
-                todo push to
-              }
-            case None =>
-              if (!(nonUniqueLengthStates contains to)) {
-                uniqueLengthStates.put(to, sLen + 1)
-                todo push to
-              }
-          }
-      }
-    }
-
-    uniqueLengthStates.toMap
-  }
-
-  /** Unique lengths of accepted words
-    */
-  lazy val uniqueAcceptedWordLengths: Option[Seq[Int]] = {
-    val lengths = for (s <- acceptingStates) yield (uniqueLengthStates get s)
-    if (lengths.size > 0 && !(lengths contains None))
-      Some(lengths.filter(_ != None).map(_.get).toSeq)
-    else
-      None
-  }
-
-  override def clone(): CostEnrichedAutomatonBase = {
-    val newAut = new CostEnrichedAutomatonBase
-    val old2new = states.map(s => s -> newAut.newState()).toMap
-    newAut.initialState = old2new(initialState)
-    val regSubst = registers.map { case t =>
-      t -> TermGenerator().registerTerm
-    }.toMap
-    newAut.registers = regSubst.values.toSeq
-    newAut.regsRelation = new ConstSubstVisitor().apply(regsRelation, regSubst)
-    for ((from, lbl, to, vec) <- transitionsWithVec) {
-      newAut.addTransition(old2new(from), lbl, old2new(to), vec)
-    }
-    for (s <- acceptingStates) {
-      newAut.setAccept(old2new(s), true)
-    }
-    newAut
-  }
-
   def newState(): State = synchronized {
     stateidx += 1
     new State() {
@@ -171,22 +100,7 @@ class CostEnrichedAutomatonBase extends Automaton {
 
   /** Iterate over automaton states
     */
-  lazy val states: Iterable[State] = {
-    val seenlist = new MHashSet[State]
-    val worklist = new MStack[State]
-    worklist.push(initialState)
-    seenlist.add(initialState)
-    while (!worklist.isEmpty) {
-      val s = worklist.pop
-      for (
-        (to, _, _) <- outgoingTransitionsWithVec(s) if !seenlist.contains(to)
-      ) {
-        worklist.push(to)
-        seenlist.add(to)
-      }
-    }
-    seenlist.toSeq
-  }
+  val states: Iterable[State]
 
   def size(): Int = _state2transtions.values.flatten.size
 
@@ -196,15 +110,18 @@ class CostEnrichedAutomatonBase extends Automaton {
 
   /** Given a state, iterate over all outgoing transitons with vector
     */
-  def outgoingTransitionsWithVec(
+  def outgoingTransitions(
       s: State
   ): Iterable[(State, (Char, Char), Seq[Int])] =
     _state2transtions.get(s) match {
       case None           => Iterable.empty
       case Some(transSet) => transSet
     }
+  
+  def outgoingTransitionsWithoutLabel(s: State): Iterable[(State, Seq[Int])] =
+    outgoingTransitions(s).map{case (to, _, vec) => (to, vec)}.toSet
 
-  def incomingTransitionsWithVec(
+  def incomingTransitions(
       t: State
   ): Iterable[(State, (Char, Char), Seq[Int])] =
     _state2incomingTranstions.get(t) match {
@@ -213,10 +130,18 @@ class CostEnrichedAutomatonBase extends Automaton {
       case Some(transSet) =>
         transSet.filter(trans => states.toSet.contains(trans._1))
     }
+    
+  def incomingTransitionsWithoutLabel(s: State): Iterable[(State, Seq[Int])] =
+    incomingTransitions(s).map{case (from, _, vec) => (from, vec)}.toSet
 
-  def transitionsWithVec: Iterable[(State, TLabel, State, Seq[Int])] = {
-    for (from <- states; (to, lbl, vec) <- outgoingTransitionsWithVec(from))
+  def transitions: Iterable[(State, TLabel, State, Seq[Int])] = {
+    for (from <- states; (to, lbl, vec) <- outgoingTransitions(from))
       yield (from, lbl, to, vec)
+  }
+
+  def transitionsWithOutLabel: Iterable[(State, State, Seq[Int])] = {
+    for (from <- states; (to, vec) <- outgoingTransitionsWithoutLabel(from))
+      yield (from, to, vec)
   }
 
   def addTransition(
@@ -237,82 +162,14 @@ class CostEnrichedAutomatonBase extends Automaton {
 
   def addEpsilon(s: State, t: State): Unit = {
     if (isAccept(t)) setAccept(s, true)
-    for ((to, lbl, vec) <- outgoingTransitionsWithVec(t)) {
+    for ((to, lbl, vec) <- outgoingTransitions(t)) {
       addTransition(s, lbl, to, vec)
     }
   }
 
-  def |(that: Automaton): Automaton = {
-    CEBasicOperations.union(
-      Seq(this, that.asInstanceOf[CostEnrichedAutomatonBase])
-    )
-  }
-
-  def &(that: Automaton): Automaton = product(
-    that.asInstanceOf[CostEnrichedAutomatonBase]
-  )
-
-  // check whether the NFA form of this automaton is empty
-  def isEmpty: Boolean = {
-    val seenlist = new MHashSet[State]
-    val worklist = new MStack[State]
-    worklist.push(initialState)
-    seenlist.add(initialState)
-    while (!worklist.isEmpty) {
-      val s = worklist.pop
-      if (isAccept(s)) {
-        return false
-      }
-      for (
-        (to, _, _) <- outgoingTransitionsWithVec(s) if !seenlist.contains(to)
-      ) {
-        worklist.push(to)
-        seenlist.add(to)
-      }
-    }
-    true
-  }
-
-  def getAcceptedWord: Option[Seq[Int]] = {
-    if (registers.nonEmpty) {
-      throw new UnsupportedOperationException
-    }
-    val seenlist = new MHashSet[State]
-    val worklist = new MStack[(State, Seq[Int])]
-    worklist.push((initialState, Seq()))
-    seenlist.add(initialState)
-    while (!worklist.isEmpty) {
-      val (s, word) = worklist.pop
-      if (isAccept(s)) {
-        return Some(word)
-      }
-      for (
-        (to, (lbl, _), _) <- outgoingTransitionsWithVec(s)
-        if !seenlist.contains(to)
-      ) {
-        val newWord = word :+ lbl.toInt
-        worklist.push((to, newWord))
-        seenlist.add(to)
-      }
-    }
-    None
-  }
-
-  def unary_! = {
-    if (registers.nonEmpty) throw new UnsupportedOperationException
-    CEBasicOperations.complement(this)
-  }
-  def apply(word: Seq[Int]): Boolean = {
-    ParikhUtil.log(
-      "Naively run word on CEFA without registers. Indeed, the CEFA with registers can be easily supported in the future."
-    )
-    // if (registers.nonEmpty) throw new UnsupportedOperationException
-    BasicOperations.run(toBricsAutomaton(this), word.map(_.toChar).mkString)
-  }
-
-  def product(that: CostEnrichedAutomatonBase): CostEnrichedAutomatonBase = {
-    CEBasicOperations.intersection(this, that)
-  }
+  def getAcceptedWordByRegisters(
+      registersModel: Map[ITerm, Int]
+  ): Option[Seq[Int]] 
 
   def getLengthAbstraction = throw new UnsupportedOperationException
   // Accessors and Mutators ////
@@ -327,56 +184,13 @@ class CostEnrichedAutomatonBase extends Automaton {
   def registers_=(registers: Seq[ITerm]) = _registers = registers
 
   def regsRelation_=(f: IFormula) = _regsRelation = f
+
   /////////////////////////////
 
-  override def toString: String = {
-    def transition2Str(transition: (State, TLabel, State, Seq[Int])): String = {
-      val (s, (left, right), t, vec) = transition
-      s"${s} -> ${t} [${left.toInt}, ${right.toInt}] $vec"
-    }
+  def emptinessCheckFormula = connectSimplify(Seq(
+    ParikhUtil.parikhImage(this),
+    regsRelation
+  ), IBinJunctor.And)
 
-    s"""
-    automaton A${hashCode()} {
-      init ${initialState};
-      ${transitionsWithVec.toSeq
-        .sortBy(_._1)
-        .map(transition2Str)
-        .mkString("\n    ")}
-      accepting ${acceptingStates.map(s => s"${s}").mkString(", ")};
-      Registers ${registers.mkString(", ")};
-      RegsRelation ${regsRelation};
-    };
-    """
-  }
-
-  def toDot(suffix: String): Unit = {
-    if (!ParikhUtil.debugOpt) return
-    states.zipWithIndex.toMap
-    val outdir = "dot" + File.separator + LocalDate.now().toString
-    new File(outdir).mkdirs()
-    val dotfile = outdir + File.separator + s"${suffix}.dot"
-    val writer = new DotWriter(dotfile.toString)
-    val strbuilder = new StringBuilder
-    strbuilder.append(s"""
-      digraph G {
-        rankdir=LR;
-        init [shape=point];
-        node [shape = doublecircle];
-        ${acceptingStates.mkString(" ")}
-        node [shape = circle];
-        init -> ${initialState};""")
-
-    for ((s, (left, right), t, vec) <- transitionsWithVec.toSeq.sortBy(_._1)) {
-      strbuilder.append(s"""
-        ${s} -> ${t} [label = \"${left.toInt},${right.toInt}:(${vec.mkString(
-          ","
-        )})\"]""")
-    }
-    strbuilder.append("\n")
-    strbuilder.append(
-      s"""        \"${registers.mkString(", ")}\" [shape=plaintext]"""
-    )
-    strbuilder.append("\n      }")
-    writer.closeAfterWrite(strbuilder.toString())
-  }
+  def toDot(suffix: String)
 }

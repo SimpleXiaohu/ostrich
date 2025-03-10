@@ -49,8 +49,9 @@ class BaselineFinalConstraints(
   val regsTerms: Seq[ITerm] = auts.flatMap(_.registers)
 
   lazy val getCompleteLIA: IFormula = {
+    val productAut = auts.reduce((a1,a2) => (a1 & a2).asInstanceOf[CostEnrichedAutomatonBase])
     connectSimplify(
-      Seq(ParikhUtil.parikhImage(auts.reduce(_ product _)), getRegsRelation),
+      Seq(ParikhUtil.parikhImage(productAut), getRegsRelation),
       IBinJunctor.And
     )
   }
@@ -59,7 +60,7 @@ class BaselineFinalConstraints(
     connectSimplify(auts.map(_.regsRelation), IBinJunctor.And)
 
   def getModel(partialModel: PartialModel): Option[Seq[Int]] = {
-    var registersModel = Map[ITerm, IdealInt]()
+    var registersModel = Map[ITerm, Int]()
     for (term <- auts.flatMap(_.registers))
       registersModel += (term -> FinalConstraints.evalTerm(term, partialModel))
     ParikhUtil.findAcceptedWord(auts, registersModel)

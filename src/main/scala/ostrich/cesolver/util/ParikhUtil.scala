@@ -52,7 +52,7 @@ object ParikhUtil {
 
   type State = CostEnrichedAutomatonBase#State
   type TLabel = CostEnrichedAutomatonBase#TLabel
-  type Transition = CostEnrichedAutomatonBase#Transition
+  type TransitionWitoutLabel = (State, State, Seq[Int])
 
   var debugOpt, logOpt = false
 
@@ -74,69 +74,26 @@ object ParikhUtil {
     else
       comp
 
-  def findAcceptedWordByRegistersComplete(
-      aut: CostEnrichedAutomatonBase,
-      registersModel: Map[ITerm, IdealInt]
-  ): Option[Seq[Int]] = {
-    log("Finding the accepted word by registers")
-    log(s"Registers model: $registersModel")
-    val registersValue = aut.registers.map(registersModel(_).intValue)
-    val todoList = new ArrayStack[(State, Seq[Int], Seq[Char])]
-    val visited = new MHashSet[(State, Seq[Int])]
-    todoList.push(
-      (
-        aut.initialState,
-        Seq.fill(aut.registers.size)(0),
-        ""
-      )
-    )
-    visited.add(
-      (aut.initialState, Seq.fill(aut.registers.size)(0))
-    )
-    while (!todoList.isEmpty) {
-      ap.util.Timeout.check
-      val (state, regsVal, word) = todoList.pop()
-      if (aut.isAccept(state) && regsVal == registersValue) {
-        return Some(word.map(_.toInt))
-      }
-      val sortedByVecSum =
-        aut.outgoingTransitionsWithVec(state).toSeq.sortBy(_._3.sum).reverse
-      for ((t, l, v) <- sortedByVecSum) {
-        val newRegsVal = sumVec(regsVal, v)
-        val newWord = word :+ l._1
-        val newState = t
-        if (
-          !visited.contains((newState, newRegsVal)) &&
-          !newRegsVal.zip(registersValue).exists(r => r._1 > r._2)
-        ) {
-          todoList.push((newState, newRegsVal, newWord))
-          visited.add((newState, newRegsVal))
-        }
-      }
-    }
-    None
-  }
-
   private def canArriveOtherTransFrom(
       aut: CostEnrichedAutomatonBase,
-      trans: Transition,
-      transTimes: Map[Transition, Int]
+      trans: TransitionWitoutLabel,
+      transTimes: Map[TransitionWitoutLabel, Int]
   ): Boolean = {
-    val visited = new Stack[Transition]
-    val todoList = new Stack[Transition]
+    val visited = new Stack[TransitionWitoutLabel]
+    val todoList = new Stack[TransitionWitoutLabel]
     todoList.push(trans)
     visited.push(trans)
     while (!todoList.isEmpty) {
       val currentTrans = todoList.pop()
-      val (_, _, to, _) = currentTrans
-      for ((nextTo, l, v) <- aut.outgoingTransitionsWithVec(to)) {
+      val (_, to, _) = currentTrans
+      for ((nextTo, v) <- aut.outgoingTransitionsWithoutLabel(to)) {
         if (
-          transTimes.contains((to, l, nextTo, v)) && !visited.contains(
-            (to, l, nextTo, v)
+          transTimes.contains((to, nextTo, v)) && !visited.contains(
+            (to, nextTo, v)
           )
         ) {
-          todoList.push((to, l, nextTo, v))
-          visited.push((to, l, nextTo, v))
+          todoList.push((to, nextTo, v))
+          visited.push((to, nextTo, v))
         }
       }
     }
@@ -145,13 +102,13 @@ object ParikhUtil {
 
   private def findAcceptedWordByTransitionTimes(
       aut: CostEnrichedAutomatonBase,
-      transModel: Map[Transition, IdealInt]
+      transModel: Map[TransitionWitoutLabel, IdealInt]
   ): Option[Seq[Int]] = {
     val transTimes = transModel
       .map { case (tran, value) => (tran, value.intValue) }
       .filterNot(_._2 == 0)
-    val todoList = new ArrayStack[(State, Map[Transition, Int], Seq[Char])]
-    val visited = new MHashSet[(State, Map[Transition, Int])]
+    val todoList = new ArrayStack[(State, Map[TransitionWitoutLabel, Int], Seq[Char])]
+    val visited = new MHashSet[(State, Map[TransitionWitoutLabel, Int])]
     todoList.push((aut.initialState, transTimes, ""))
     visited.add((aut.initialState, transTimes))
     while (!todoList.isEmpty) {
@@ -162,9 +119,9 @@ object ParikhUtil {
       }
       val sortedByVecSum =
         aut
-          .outgoingTransitionsWithVec(state)
+          .outgoingTransitions(state)
           .filter { case (t, l, v) =>
-            lastTransTimes.contains((state, l, t, v))
+            lastTransTimes.contains((state, t, v))
           }
           .toSeq
           .sortBy { case (t, l, v) =>
@@ -172,7 +129,7 @@ object ParikhUtil {
           }
           .reverse
       for ((t, l, v) <- sortedByVecSum) {
-        val currentTrans = (state, l, t, v)
+        val currentTrans = (state, t, v)
         val currTransTimes = lastTransTimes(currentTrans) - 1
         val newTransTimes =
           if (currTransTimes > 0)
@@ -197,12 +154,12 @@ object ParikhUtil {
   // Compute the transitions times based on registers values and find the string by DFS for each transition
   def findAcceptedWordByTransTimesComplete(
       aut: CostEnrichedAutomatonBase,
-      registersModel: Map[ITerm, IdealInt]
+      registersModel: Map[ITerm, Int]
   ): Option[Seq[Int]] = {
     log("Finding the accepted word by transition times")
     val termGen = TermGenerator()
     val trans2Term =
-      aut.transitionsWithVec.map(t => (t, termGen.transitionTerm)).toMap
+      aut.transitionsWithOutLabel.map(t => (t, termGen.transitionTerm)).toMap
     val registerFormulas = aut.registers.map(r => r === registersModel(r))
     val findingTransTimesF = connectSimplify(
       registerFormulas :+ parikhImage(aut, trans2Term),
@@ -222,7 +179,7 @@ object ParikhUtil {
       status match {
         case SimpleAPI.ProverStatus.Sat =>
           val model = p.partialModel
-          val transModel = aut.transitionsWithVec
+          val transModel = aut.transitionsWithOutLabel
             .map(t => (t, model.eval(trans2Term(t)).get))
             .toMap
           log(
@@ -240,21 +197,21 @@ object ParikhUtil {
 
   def findAcceptedWord(
       auts: Seq[CostEnrichedAutomatonBase],
-      registersModel: Map[ITerm, IdealInt]
+      registersModel: Map[ITerm, Int]
   ): Option[Seq[Int]] = {
-    val aut = auts.reduce(_ product _)
+    val aut = auts.reduce((a1,a2) => (a1 & a2).asInstanceOf[CostEnrichedAutomatonBase])
     val registersLogrithmSum =
       registersModel.map(_._2.intValue).filter(_ > 0).map(math.log(_)).sum
     if (registersLogrithmSum > ParikhUtil.MIN_LOG_REG_SUM_PARIKH)
       findAcceptedWordByTransTimesComplete(aut, registersModel)
     else
-      findAcceptedWordByRegistersComplete(aut, registersModel)
+      aut.getAcceptedWordByRegisters(registersModel)
 
   }
 
   def parikhImage(
       aut: CostEnrichedAutomatonBase,
-      explicitTrans2Term: Map[CostEnrichedAutomatonBase#Transition, ITerm] =
+      explicitTrans2Term: Map[TransitionWitoutLabel, ITerm] =
         Map()
   ): IFormula = {
     ParikhUtil.log(
@@ -264,19 +221,19 @@ object ParikhUtil {
     lazy val transtion2Term =
       if (explicitTrans2Term.nonEmpty) explicitTrans2Term
       else
-        aut.transitionsWithVec.map(t => (t, termGen.transitionTerm)).toMap
+        aut.transitionsWithOutLabel.map(t => (t, termGen.transitionTerm)).toMap
     def outFlowTerms(from: State): Seq[ITerm] = {
       val outFlowTerms: ArrayBuffer[ITerm] = new ArrayBuffer
-      aut.outgoingTransitionsWithVec(from).foreach { case (to, lbl, vec) =>
-        outFlowTerms += transtion2Term(from, lbl, to, vec)
+      aut.outgoingTransitionsWithoutLabel(from).foreach { case (to, vec) =>
+        outFlowTerms += transtion2Term(from, to, vec)
       }
       outFlowTerms.toSeq
     }
 
     def inFlowTerms(to: State): Seq[ITerm] = {
       val inFlowTerms: ArrayBuffer[ITerm] = new ArrayBuffer
-      aut.incomingTransitionsWithVec(to).foreach { case (from, lbl, vec) =>
-        inFlowTerms += transtion2Term(from, lbl, to, vec)
+      aut.incomingTransitionsWithoutLabel(to).foreach { case (from, vec) =>
+        inFlowTerms += transtion2Term(from, to, vec)
       }
       inFlowTerms.toSeq
     }
@@ -284,9 +241,9 @@ object ParikhUtil {
     val zTerm = aut.states.map((_, termGen.zTerm)).toMap
 
     val preStatesWithTTerm = new MHashMap[State, MHashSet[(State, ITerm)]]
-    for ((from, lbl, to, vec) <- aut.transitionsWithVec) {
+    for ((from, to, vec) <- aut.transitionsWithOutLabel) {
       val set = preStatesWithTTerm.getOrElseUpdate(to, new MHashSet)
-      val tTerm = transtion2Term(from, lbl, to, vec)
+      val tTerm = transtion2Term(from, to, vec)
       set += ((from, tTerm))
     }
     // consistent flow ///////////////////////////////////////////////////////////////
@@ -323,9 +280,9 @@ object ParikhUtil {
     /////////////////////////////////////////////////////////////////////////////////
 
     // connection //////////////////////////////////////////////////////////////////
-    val zVarInitFormulas = aut.transitionsWithVec.map {
-      case (from, lbl, to, vec) => {
-        val tTerm = transtion2Term(from, lbl, to, vec)
+    val zVarInitFormulas = aut.transitionsWithOutLabel.map {
+      case (from, to, vec) => {
+        val tTerm = transtion2Term(from, to, vec)
         if (from == aut.initialState)
           (zTerm(from) === 0)
         else
@@ -362,8 +319,8 @@ object ParikhUtil {
     val registerUpdateMap: Map[ITerm, ArrayBuffer[ITerm]] = {
       val registerUpdateMap =
         new MHashMap[ITerm, ArrayBuffer[ITerm]]
-      aut.transitionsWithVec.foreach { case (from, lbl, to, vec) =>
-        val trasitionTerm = transtion2Term(from, lbl, to, vec)
+      aut.transitionsWithOutLabel.foreach { case (from, to, vec) =>
+        val trasitionTerm = transtion2Term(from, to, vec)
         vec.zipWithIndex.foreach {
           case (veci, i) if veci > 0 => {
             val update =
@@ -396,7 +353,8 @@ object ParikhUtil {
       Seq(
         registerUpdateFormula,
         consistentFlowFormula,
-        connectionFormula
+        connectionFormula,
+        aut.regsRelation
       ),
       IBinJunctor.And
     )
@@ -426,7 +384,7 @@ object ParikhUtil {
       pairs =
         for (
           (s, t, vec) <- pairs;
-          (tNext, lNext, vecNext) <- aut.outgoingTransitionsWithVec(t);
+          (tNext, lNext, vecNext) <- aut.outgoingTransitions(t);
           if labelOps.labelContains(currentChar, lNext)
         ) yield (s, tNext, sumVec(vec, vecNext))
     }
@@ -444,7 +402,7 @@ object ParikhUtil {
       lbl: TLabel
   ): Set[State] = {
     (for (
-      s <- states; (t, lblAut, _) <- aut.outgoingTransitionsWithVec(s);
+      s <- states; (t, lblAut, _) <- aut.outgoingTransitions(s);
       if aut.LabelOps.labelsOverlap(lbl, lblAut)
     )
       yield t).toSet
@@ -452,7 +410,7 @@ object ParikhUtil {
 
   // check if the aut only accepts empty string
   def isEmptyString(aut: CostEnrichedAutomatonBase): Boolean = {
-    aut.isAccept(aut.initialState) && aut.transitionsWithVec.isEmpty
+    aut.isAccept(aut.initialState) && aut.transitions.isEmpty
   }
 
   def debugPrintln(s: Any) = {
@@ -460,7 +418,7 @@ object ParikhUtil {
       println("Debug: " + s)
   }
 
-  def todo(s: Any, urgency: Int) = {
+  def todo(s: Any, urgency: Int = 1) = {
     if (logOpt)
       println(
         s"TODO (urgency level $urgency):" + s + "  (lower level is more urgent)"

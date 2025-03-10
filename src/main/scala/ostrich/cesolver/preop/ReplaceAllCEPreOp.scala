@@ -34,7 +34,7 @@ package ostrich.cesolver.preop
 
 import scala.collection.mutable.{HashSet => MHashSet, HashMap => MHashMap, Stack=> MStack}
 
-import ostrich.cesolver.automata.CostEnrichedAutomatonBase
+import ostrich.cesolver.automata.CostEnrichedAutomaton
 import ostrich.cesolver.automata.CETransducer
 import ostrich.cesolver.util.ParikhUtil.{partition, getImage}
 import ostrich.automata.Automaton
@@ -44,7 +44,7 @@ import ostrich.cesolver.automata.CETLabelEnumerator
 
 object ReplaceAllCEPreOp {
   // pre-images of x = replaceall(y, e, u)
-  def apply(pattern: CostEnrichedAutomatonBase, replacement: Seq[Char]) = {
+  def apply(pattern: CostEnrichedAutomaton, replacement: Seq[Char]) = {
     val transducer = buildTransducer(pattern)
     new ReplaceCEPreOp(transducer, replacement)
   }
@@ -55,7 +55,7 @@ object ReplaceAllCEPreOp {
     new ReplaceCEPreOp(transducer, replacement)
   }
 
-  private def buildTransducer(aut: CostEnrichedAutomatonBase) : CETransducer = {
+  private def buildTransducer(aut: CostEnrichedAutomaton) : CETransducer = {
     ParikhUtil.todo("ReplaceAllCEPreOp: not handle empty match in pattern", 3)
     abstract class Mode
     // not matching
@@ -66,7 +66,7 @@ object ReplaceAllCEPreOp {
     case class EndMatch(val frontier : Set[aut.State]) extends Mode
 
      val labelEnumerator = new CETLabelEnumerator(
-      aut.transitionsWithVec.map(_._2)
+      aut.transitions.map(_._2)
     )
     val labels = labelEnumerator.enumDisjointLabelsComplete
     val ceTran = new CETransducer
@@ -257,7 +257,7 @@ class ReplaceAllCEPreOp(tran: CETransducer, replacement: Seq[Char]) extends CEPr
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
     // x = replace(y, pattern, replacement)
-    val rc = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
+    val rc = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
     val internals = partition(rc, replacement)
     val newYCon = tran.preImage(rc, internals)
     (Iterator(Seq(newYCon)), argumentConstraints)

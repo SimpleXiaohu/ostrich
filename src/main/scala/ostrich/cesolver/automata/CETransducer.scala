@@ -42,11 +42,11 @@ import scala.collection.mutable.{
 import ostrich.automata.TLabelOps
 import ostrich.automata.BricsTLabelOps
 import ostrich.automata.Transducer._
-import ostrich.cesolver.util.ParikhUtil
+import ostrich.cesolver.util.ParikhUtil.{log, sumVec}
 
 object CETransducer {
-  type State = CostEnrichedAutomatonBase#State
-  type TLabel = CostEnrichedAutomatonBase#TLabel
+  type State = CostEnrichedAutomaton#State
+  type TLabel = CostEnrichedAutomaton#TLabel
 
   private val strAtRightTransducer =
     new MHashMap[Int, CETransducer]
@@ -147,16 +147,16 @@ class CETransducer {
 
   def isAccept(s: State) = _acceptingStates.contains(s)
 
-  def preImage(aut : CostEnrichedAutomatonBase) : CostEnrichedAutomatonBase =
+  def preImage(aut : CostEnrichedAutomaton) : CostEnrichedAutomaton =
     preImage(aut, Iterable())
 
   def preImage(
-      aut: CostEnrichedAutomatonBase,
+      aut: CostEnrichedAutomaton,
       internals: Iterable[(State, State, Seq[Int])] = Iterable()
-  ): CostEnrichedAutomatonBase =
+  ): CostEnrichedAutomaton =
     /* Exploration.measure("transducer pre-op") */ {
-      ParikhUtil.log("Computing pre-image of transducer")
-      val ceAut = new CostEnrichedAutomatonBase
+      log("Computing pre-image of transducer")
+      val ceAut = new CostEnrichedAutomaton
       ceAut.registers = aut.registers
       ceAut.regsRelation = aut.regsRelation
 
@@ -191,9 +191,6 @@ class CETransducer {
       // after (TODO: think of more efficient solution)
       new MHashMap[State, MSet[State]]
         with MMultiMap[State, State]
-
-      def sumVec(v1: Seq[Int], v2: Seq[Int]) =
-        (v1 zip v2).map { case (x, y) => x + y }
 
       // transducer state, automaton state
       def getState(ts: State, as: State) = {
@@ -298,7 +295,7 @@ class CETransducer {
           case Pre(u) if !u.isEmpty => {
             val a = u.head
             val rest = u.tail
-            for ((asNext, albl, asVec) <- aut.outgoingTransitionsWithVec(as)) {
+            for ((asNext, albl, asVec) <- aut.outgoingTransitions(as)) {
               if (aut.LabelOps.labelContains(a, albl)) {
                 if (!rest.isEmpty) {
                   addWork(ps, ts, t, asNext, sumVec(vec, asVec), Pre(rest))
@@ -324,7 +321,7 @@ class CETransducer {
                   }
                   case Plus(n) => {
                     for (
-                      (asNext, albl, asVec) <- aut.outgoingTransitionsWithVec(
+                      (asNext, albl, asVec) <- aut.outgoingTransitions(
                         as
                       )
                     ) {
@@ -370,7 +367,7 @@ class CETransducer {
           case Post(v, lbl) if !v.isEmpty => {
             val a = v.head
             val rest = v.tail
-            for ((asNext, albl, asVec) <- aut.outgoingTransitionsWithVec(as)) {
+            for ((asNext, albl, asVec) <- aut.outgoingTransitions(as)) {
               if (aut.LabelOps.labelContains(a, albl))
                 addWork(ps, ts, t, asNext, sumVec(vec, asVec), Post(rest, lbl))
             }
@@ -386,7 +383,7 @@ class CETransducer {
           case EPost(v) if !v.isEmpty => {
             val a = v.head
             val rest = v.tail
-            for ((asNext, albl, asVec) <- aut.outgoingTransitionsWithVec(as)) {
+            for ((asNext, albl, asVec) <- aut.outgoingTransitions(as)) {
               if (aut.LabelOps.labelContains(a, albl))
                 addWork(ps, ts, t, asNext, sumVec(vec, asVec), EPost(rest))
             }
@@ -404,7 +401,7 @@ class CETransducer {
 
       def addEpsilonWithVec(ps: State, pt: State, vec: Seq[Int]) {
         if (ceAut.isAccept(pt)) ceAut.setAccept(ps, true)
-        for ((to, lbl, pVec) <- ceAut.outgoingTransitionsWithVec(pt)) {
+        for ((to, lbl, pVec) <- ceAut.outgoingTransitions(pt)) {
           ceAut.addTransition(ps, lbl, to, sumVec(vec, pVec))
         }
       }
@@ -420,7 +417,7 @@ class CETransducer {
     * Assumes transducer is functional, so returns the first found output
     */
   def apply(input: String, internal: String = ""): Option[String] = {
-    ParikhUtil.log("Applying transducer to input")
+    log("Applying transducer to input")
     if (input.size == 0 && isAccept(_initialState))
       return Some("")
 
@@ -507,7 +504,7 @@ class CETransducer {
   }
 
   def minimize() = {
-    ParikhUtil.log("Minimizing transducer")
+    log("Minimizing transducer")
     def dest(t: TTransition): State = t._3
     def edest(t: TETransition): State = t._2
 

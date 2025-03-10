@@ -290,7 +290,7 @@ class Regex2CEAut(theory: OstrichStringTheory, flags: OFlags)
     }
   }
 
-  private def maybeMin(aut: CostEnrichedAutomatonBase, minimize: Boolean) =
+  private def maybeMin(aut: CostEnrichedAutomaton, minimize: Boolean) =
     if (minimize) {
       minimizeHopcroft(aut)
     } else {
@@ -320,7 +320,7 @@ class Regex2CEAut(theory: OstrichStringTheory, flags: OFlags)
       t: ITerm,
       mustUnwind: Boolean,
       minimize: Boolean
-  ): CostEnrichedAutomatonBase =
+  ): CostEnrichedAutomaton =
     t match {
       case IFunApp(`re_++`, _) => {
         val leaves = collectLeaves(t, re_++)
@@ -417,7 +417,7 @@ class Regex2CEAut(theory: OstrichStringTheory, flags: OFlags)
       t: ITerm,
       noOver: Boolean,
       minimize: Boolean
-  ): CostEnrichedAutomatonBase = t match {
+  ): CostEnrichedAutomaton = t match {
     case IFunApp(`re_++`, _) => {
       val leaves = collectLeaves(t, re_++)
       val leaveAuts =

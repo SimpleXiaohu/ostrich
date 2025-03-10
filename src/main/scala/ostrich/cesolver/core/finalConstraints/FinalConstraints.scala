@@ -56,14 +56,12 @@ object FinalConstraints {
     new BaselineFinalConstraints(t, auts, flags)
   }
 
-  def evalTerm(t: ITerm, model: PartialModel): IdealInt = {
+  def evalTerm(t: ITerm, model: PartialModel): Int = {
     val value = evalTerm(t)(model)
     if (!value.isDefined) {
-      // TODO: NEED NEW FEATURE!
-      // Do not generate model of variables without constraints now
       throw new Exception("ITerm " + t + " is not defined in the model")
     }
-    value.get
+    value.get.intValueSafe
   }
 
   def evalTerm(t: ITerm)(model: PartialModel): Option[IdealInt] = t match {

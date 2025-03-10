@@ -40,12 +40,13 @@ import ap.parser.ITerm
 import ostrich.OFlags
 import ap.parser.IFormula
 import ostrich.automata.Automaton
+import ostrich.cesolver.automata.StringArrayAutomaton
+import ostrich.cesolver.util.ParikhUtil.debugPrintln
 
 class ParikhStore(
     t: ITerm,
     flags: OFlags,
-    inputFormula: IFormula,
-    integerTerms: Set[ITerm]
+    isArray: Boolean = false
 ) {
 
   // constraints in this store
@@ -55,8 +56,13 @@ class ParikhStore(
   private val productAutStack = new ArrayStack[CostEnrichedAutomatonBase]
 
   // the intermidiate product automaton
+  private val totolityAut = if (isArray) {
+    StringArrayAutomaton.makeAnyArray()
+  } else {
+    BricsAutomatonWrapper.makeAnyString()
+  }
   private var productAut: CostEnrichedAutomatonBase =
-    BricsAutomatonWrapper.makeAnyString
+    totolityAut
 
   // Combinations of automata that are known to have empty intersection
   private val inconsistentAutomata =
@@ -107,12 +113,13 @@ class ParikhStore(
   private def checkConsistencyByProduct(
       aut: CostEnrichedAutomatonBase
   ): Option[Seq[CostEnrichedAutomatonBase]] = {
-    productAut = productAut product aut
+    productAut = (productAut & aut).asInstanceOf[CostEnrichedAutomatonBase]
     val consideredAuts = new ArrayBuffer[CostEnrichedAutomatonBase]
     if (productAut.isEmpty) {
       // inconsistent, generate the minimal conflicted set
+      productAut.toDot("productAut")
       var tmpAut: Automaton =
-        BricsAutomatonWrapper.makeAnyString
+        totolityAut
       for (aut2 <- aut +: constraints) {
         tmpAut = tmpAut & aut2
         consideredAuts += aut2

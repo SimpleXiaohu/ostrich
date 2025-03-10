@@ -76,7 +76,7 @@ object BricsAutomatonWrapper {
   * registers and update for each transition.
   */
 class BricsAutomatonWrapper(val underlying: BAutomaton)
-    extends CostEnrichedAutomatonBase {
+    extends CostEnrichedAutomaton {
 
   private val old2new = underlying.getStates().asScala.map(s => (s, newState())).toMap
   

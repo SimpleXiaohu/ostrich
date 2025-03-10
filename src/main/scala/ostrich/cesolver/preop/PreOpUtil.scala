@@ -31,17 +31,17 @@
  */
 
 package ostrich.cesolver.preop
-import ostrich.cesolver.automata.CostEnrichedAutomatonBase
+import ostrich.cesolver.automata.CostEnrichedAutomaton
 import ostrich.cesolver.automata.BricsAutomatonWrapper.{
   makeEmpty,
   makeEmptyString
 }
 
 object PreOpUtil {
-  def automatonWithLen(len: Int): CostEnrichedAutomatonBase = {
+  def automatonWithLen(len: Int): CostEnrichedAutomaton = {
     if (len < 0) return makeEmpty()
     if (len == 0) return makeEmptyString()
-    val ceAut = new CostEnrichedAutomatonBase
+    val ceAut = new CostEnrichedAutomaton
     val sigma = ceAut.LabelOps.sigmaLabel
     val states =
       ceAut.initialState +: (for (_ <- 0 to len) yield ceAut.newState())
@@ -53,9 +53,9 @@ object PreOpUtil {
     ceAut
   }
 
-  def automatonWithLenLessThan(len: Int): CostEnrichedAutomatonBase = {
+  def automatonWithLenLessThan(len: Int): CostEnrichedAutomaton = {
     if (len <= 0) return makeEmpty()
-    val ceAut = new CostEnrichedAutomatonBase
+    val ceAut = new CostEnrichedAutomaton
     val sigma = ceAut.LabelOps.sigmaLabel
     val states =
       ceAut.initialState +: (for (_ <- 0 to len) yield ceAut.newState())

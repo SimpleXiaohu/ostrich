@@ -34,7 +34,7 @@ package ostrich.cesolver.preop
 
 import ostrich.automata.Automaton
 import ostrich.cesolver.automata.BricsAutomatonWrapper
-import ostrich.cesolver.automata.CostEnrichedAutomatonBase
+import ostrich.cesolver.automata.CostEnrichedAutomaton
 import ostrich.cesolver.automata.CEBasicOperations.{intersection, concatenate}
 import ap.parser.ITerm
 import ap.parser.IExpression._
@@ -62,7 +62,7 @@ class SubStringCEPreOp(beginIdx: ITerm, length: ITerm) extends CEPreOp {
   override def toString(): String =
     "subStringCEPreOp"
 
-  private def normalPreimage(res: CostEnrichedAutomatonBase): Automaton = {
+  private def normalPreimage(res: CostEnrichedAutomaton): Automaton = {
     val resLen = termGen.lenTerm
     val resWithLen =
       intersection(res, LengthCEPreOp.lengthPreimage(resLen, false))
@@ -88,7 +88,7 @@ class SubStringCEPreOp(beginIdx: ITerm, length: ITerm) extends CEPreOp {
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
 
-    val res = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
+    val res = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
     (beginIdx, length) match {
       // substring(x, 0, 1)
       case (Const(IdealInt(0)), Const(IdealInt(1))) => {

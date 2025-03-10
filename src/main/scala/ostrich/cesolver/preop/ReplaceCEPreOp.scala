@@ -38,7 +38,7 @@ import scala.collection.mutable.{
 
 import ostrich.automata.Automaton
 import ostrich.automata.Transducer
-import ostrich.cesolver.automata.CostEnrichedAutomatonBase
+import ostrich.cesolver.automata.CostEnrichedAutomaton
 import Transducer._
 import ostrich.cesolver.automata.CETransducer
 import ostrich.cesolver.util.ParikhUtil
@@ -50,11 +50,11 @@ trait ReplaceCEPreOpBase {
 }
 
 object ReplaceCEShortestPreOp extends ReplaceCEPreOpBase {
-  def apply(aut: CostEnrichedAutomatonBase, rep: Seq[Char]) : CEPreOp = ReplaceCEPreOpShortestRegEx(aut, rep)
+  def apply(aut: CostEnrichedAutomaton, rep: Seq[Char]) : CEPreOp = ReplaceCEPreOpShortestRegEx(aut, rep)
 }
 
 object ReplaceCELongestPreOp extends ReplaceCEPreOpBase {
-  def apply(aut: CostEnrichedAutomatonBase, rep: Seq[Char]) : CEPreOp = ReplaceCEPreOpLongestRegEx(aut, rep)
+  def apply(aut: CostEnrichedAutomaton, rep: Seq[Char]) : CEPreOp = ReplaceCEPreOpLongestRegEx(aut, rep)
 }
 
 object ReplaceCEPreOpWord {
@@ -172,7 +172,7 @@ object ReplaceCEPreOpLongestRegEx {
     * The representation of x = replace(y, pattern, replacement) where pattern
     * is a regular expression and is matched longest
     */
-  def apply(pattern: CostEnrichedAutomatonBase, replacement: Seq[Char]) = {
+  def apply(pattern: CostEnrichedAutomaton, replacement: Seq[Char]) = {
     val transducer = buildTransducer(pattern)
     new ReplaceCEPreOp(transducer, replacement)
   }
@@ -185,7 +185,7 @@ object ReplaceCEPreOpLongestRegEx {
    * TODO: currently does not handle empty matches
    */
   private def buildTransducer(
-      aut: CostEnrichedAutomatonBase
+      aut: CostEnrichedAutomaton
   ): CETransducer = {
     ParikhUtil.todo("ReplaceCEPreOp: not handle empty match in pattern", 3)
     abstract class Mode
@@ -199,7 +199,7 @@ object ReplaceCEPreOpLongestRegEx {
     case object CopyRest extends Mode
 
     val labelEnumerator = new CETLabelEnumerator(
-      aut.transitionsWithVec.map(_._2)
+      aut.transitions.map(_._2)
     )
     val labels = labelEnumerator.enumDisjointLabelsComplete
     val ceTran = new CETransducer
@@ -323,7 +323,7 @@ object ReplaceCEPreOpShortestRegEx {
     * The representation of x = replace(y, pattern, replacement) where pattern
     * is a regular expression and is matched shortest
     */
-  def apply(pattern: CostEnrichedAutomatonBase, replacement: Seq[Char]) = {
+  def apply(pattern: CostEnrichedAutomaton, replacement: Seq[Char]) = {
     val transducer = buildTransducer(pattern)
     new ReplaceCEPreOp(transducer, replacement)
   }
@@ -335,7 +335,7 @@ object ReplaceCEPreOpShortestRegEx {
    * If aut contains the empty word, the internalChar will be prepended
    */
   private def buildTransducer(
-      aut: CostEnrichedAutomatonBase
+      aut: CostEnrichedAutomaton
   ): CETransducer = {
     abstract class Mode
     // not matching
@@ -346,7 +346,7 @@ object ReplaceCEPreOpShortestRegEx {
     case object CopyRest extends Mode
 
     val labelEnumerator = new CETLabelEnumerator(
-      aut.transitionsWithVec.map(_._2)
+      aut.transitions.map(_._2)
     )
     val labels = labelEnumerator.enumDisjointLabelsComplete
 
@@ -462,7 +462,7 @@ class ReplaceCEPreOp(tran: CETransducer, replacement: Seq[Char])
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
     // x = replace(y, pattern, replacement)
-    val rc = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
+    val rc = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
     val internals = partition(rc, replacement)
     val newYCon = tran.preImage(rc, internals)
     (Iterator(Seq(newYCon)), argumentConstraints)

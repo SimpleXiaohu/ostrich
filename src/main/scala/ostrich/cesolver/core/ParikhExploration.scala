@@ -69,6 +69,8 @@ import ap.parser.IConstant
 import ap.parser.SimplifyingConstantSubstVisitor
 import ap.parser.IExpression
 import ostrich.cesolver.preop.SplitCEPreOp
+import ostrich.cesolver.automata.StringArrayAutomaton
+import _root_.ostrich.cesolver.preop.SelectCEPreOp
 
 object ParikhExploration {
 
@@ -79,7 +81,7 @@ object ParikhExploration {
   case class FoundModel(model: Map[Term, Either[IdealInt, Seq[Int]]])
       extends Exception
 
-  private def isStringResult(op: PreOp): Boolean = op match {
+  private def isStringResultOp(op: PreOp): Boolean = op match {
     case _: LengthCEPreOp  => false
     case _: IndexOfCEPreOp => false
     case _                 => true
@@ -109,9 +111,10 @@ class ParikhExploration(
 
   private val fresh2origin = new MHashMap[ITerm, ITerm]
 
-  private val (integerTerms, strTerms, sortedFunApps, ignoredApps) = {
+  private val (integerTerms, strTerms, arrTerms, sortedFunApps, ignoredApps) = {
     val strTerms = MHashSet[ITerm]()
     val integerTerms = MHashSet[ITerm]()
+    val arrTerms = MHashSet[ITerm]()
     for ((t, _) <- initialConstraints)
       strTerms += t
     val newFunApps = funApps.map {
@@ -143,6 +146,20 @@ class ParikhExploration(
         fresh2origin += (freshStart -> start)
         fresh2origin += (freshIndex -> index)
         (op, Seq(str, subStr, freshStart), freshIndex)
+      }
+      case (op: SplitCEPreOp, Seq(str, sep), arr) => {
+        strTerms += str
+        strTerms += sep
+        arrTerms += arr
+        (op, Seq(str, sep), arr)
+      }
+      case (op: SelectCEPreOp, Seq(arr, index), str) => {
+        val freshIndex = termGen.intTerm
+        arrTerms += arr
+        integerTerms += freshIndex
+        fresh2origin += (freshIndex -> index)
+        strTerms += str
+        (op, Seq(arr, freshIndex), str)
       }
       case (op, strs, resstr) => {
         strTerms ++= strs
@@ -187,7 +204,7 @@ class ParikhExploration(
       Console.err.println("WARNING: cyclic definitions found, ignoring " + ignoredApps)
     }
 
-    (integerTerms, strTerms, sortedApps, ignoredApps)
+    (integerTerms, strTerms, arrTerms, sortedApps, ignoredApps)
   }
 
   private val freshIntegerTermFormula = fresh2origin.map({
@@ -233,7 +250,7 @@ class ParikhExploration(
         "definitions"
     )
 
-  private val allTerms = integerTerms ++ strTerms
+  private val allTerms = integerTerms ++ strTerms ++ arrTerms
 
   private val resultTerms =
     (for ((_, t) <- sortedFunApps.iterator) yield t).toSet
@@ -251,8 +268,10 @@ class ParikhExploration(
   private val constraintStores = new MHashMap[ITerm, ParikhStore]
 
   def findModel: Option[Map[Term, Either[IdealInt, Seq[Int]]]] = {
-    for (t <- allTerms)
+    for (t <- strTerms ++ integerTerms)
       constraintStores.put(t, newStore(t))
+    for (t <- arrTerms)
+      constraintStores.put(t, newStoreArray(t))
 
     for ((t, aut) <- allInitialConstraints) {
       constraintStores(t).assertConstraint(aut) match {
@@ -341,7 +360,7 @@ class ParikhExploration(
             )
       }
 
-      if (isStringResult(op))
+      if (isStringResultOp(op))
         model += (res -> Right(resValue))
     }
     model
@@ -364,7 +383,7 @@ class ParikhExploration(
           }
 
         backendSolver.setIntegerTerm(integerTerms.toSet)
-        for (t <- leafTerms; if (strTerms contains t)) {
+        for (t <- leafTerms; if (strTerms++arrTerms contains t)) {
           backendSolver.addConstraint(t, constraintStores(t).getCompleteContents)
         }
         val res = backendSolver.measureTimeSolve
@@ -532,9 +551,14 @@ class ParikhExploration(
       (argsSeq, t) <- sortedFunApps;
       if {
         if (!(coveredTerms contains t)) {
+          val totalizedAut = if (arrTerms contains t) {
+            StringArrayAutomaton.makeAnyArray()
+          } else {
+            BricsAutomatonWrapper.makeAnyString
+          }
           coveredTerms += t
           additionalConstraints +=
-            ((t, BricsAutomatonWrapper.makeAnyString))
+            ((t, totalizedAut))
         }
         true
       };
@@ -549,5 +573,7 @@ class ParikhExploration(
   // set to true when eagerly product 
   protected val needCompleteContentsForConflicts: Boolean = true
   protected def newStore(t: ITerm): ParikhStore =
-    new ParikhStore(t, flags, inputFormula & freshIntegerTermFormula, integerTerms.toSet)
+    new ParikhStore(t, flags)
+  protected def newStoreArray(t: ITerm): ParikhStore =
+    new ParikhStore(t, flags, true)
 }

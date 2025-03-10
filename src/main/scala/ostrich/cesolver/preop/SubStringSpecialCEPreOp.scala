@@ -32,7 +32,7 @@
 package ostrich.cesolver.preop
 
 import ostrich.automata.Automaton
-import ostrich.cesolver.automata.CostEnrichedAutomatonBase
+import ostrich.cesolver.automata.CostEnrichedAutomaton
 import ostrich.cesolver.automata.CEBasicOperations
 import ostrich.cesolver.automata.BricsAutomatonWrapper
 import ostrich.automata.BricsTLabelOps
@@ -40,9 +40,9 @@ import ostrich.cesolver.util.ParikhUtil.debugPrintln
 
 object SubStrPreImageUtil {
   // An Automaton that accepts all strings not containing c
-  def noMatch(c: Char): CostEnrichedAutomatonBase = {
+  def noMatch(c: Char): CostEnrichedAutomaton = {
     val noCLabels = BricsTLabelOps.subtractLetter(c, (0.toChar, 65535.toChar))
-    val ceAut = new CostEnrichedAutomatonBase
+    val ceAut = new CostEnrichedAutomaton
     ceAut.setAccept(ceAut.initialState, true)
     for (lbl <- noCLabels)
       ceAut.addTransition(ceAut.initialState, lbl, ceAut.initialState, Seq())
@@ -58,7 +58,7 @@ class SubStr_0_lenMinus1 extends CEPreOp {
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val res = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
+    val res = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
     val nonEpsResPre = CEBasicOperations.concatenate(
       Seq(
         res,
@@ -94,7 +94,7 @@ class SubStr_lenMinus1_1 extends CEPreOp {
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val res = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
+    val res = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
     val suffix = CEBasicOperations.intersection(
       res,
       PreOpUtil.automatonWithLen(1)
@@ -133,7 +133,7 @@ class SubStr_n_lenMinusM(beginIdx: Integer, offset: Integer) extends CEPreOp {
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val res = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
+    val res = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
     val beginPlus1 = beginIdx + 1
     val offsetPlus1 = offset + 1
     val nonEpsResPreImage =
@@ -185,7 +185,7 @@ class SubStr_0_indexofc0(c: Char) extends CEPreOp {
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val res = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
+    val res = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
     val cAut = BricsAutomatonWrapper.fromString(c.toString)
     val resInterNoC =
       CEBasicOperations.intersection(res, SubStrPreImageUtil.noMatch(c))
@@ -228,7 +228,7 @@ class SubStr_0_indexofc0Plus1(c: Char) extends CEPreOp {
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val res = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
+    val res = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
     val cAut = BricsAutomatonWrapper.fromString(c.toString)
     val noMatchC = SubStrPreImageUtil.noMatch(c)
     val resInterNoCC = CEBasicOperations.intersection(
@@ -268,7 +268,7 @@ class SubStr_indexofc0Plus1_tail(c: Char) extends CEPreOp {
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val res = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
+    val res = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
     val cAut = BricsAutomatonWrapper.fromString(c.toString)
     val noMatchC = SubStrPreImageUtil.noMatch(c)
     val prefix = CEBasicOperations.concatenate(

@@ -42,9 +42,9 @@ import scala.collection.mutable.{
 import ostrich.cesolver.util.TermGenerator
 import ostrich.cesolver.util.ParikhUtil
 
-abstract class CostEnrichedAutomatonAdapter[A <: CostEnrichedAutomatonBase](
+abstract class CostEnrichedAutomatonAdapter[A <: CostEnrichedAutomaton](
     val underlying: A
-) extends CostEnrichedAutomatonBase {
+) extends CostEnrichedAutomaton {
 
   val termGen = TermGenerator()
 
@@ -62,14 +62,14 @@ abstract class CostEnrichedAutomatonAdapter[A <: CostEnrichedAutomatonBase](
     worklist push initState
 
     while (!worklist.isEmpty)
-      for ((s, _, _) <- underlying.outgoingTransitionsWithVec(worklist.pop))
+      for ((s, _, _) <- underlying.outgoingTransitions(worklist.pop))
         if (fwdReachable add s)
           worklist push s
 
     val backMapping = new MHashMap[State, MHashSet[State]]
 
     for (s <- fwdReachable)
-      for ((t, _, _) <- underlying.outgoingTransitionsWithVec(s))
+      for ((t, _, _) <- underlying.outgoingTransitions(s))
         backMapping.getOrElseUpdate(t, new MHashSet) += s
 
     for (_s <- accStates; s = _s.asInstanceOf[State])
@@ -97,7 +97,7 @@ abstract class CostEnrichedAutomatonAdapter[A <: CostEnrichedAutomatonBase](
       smap.put(s, ceAut.newState())
 
     for (from <- states) {
-      for ((to, label, update) <- outgoingTransitionsWithVec(from))
+      for ((to, label, update) <- outgoingTransitions(from))
         ceAut.addTransition(smap(from), label, smap(to), update)
       ceAut.setAccept(smap(from), isAccept(from))
     }
@@ -111,11 +111,11 @@ abstract class CostEnrichedAutomatonAdapter[A <: CostEnrichedAutomatonBase](
 }
 
 object CostEnrichedInitFinalAutomaton {
-  def apply[A <: CostEnrichedAutomatonBase](
+  def apply[A <: CostEnrichedAutomaton](
       aut: A,
       initialState: A#State,
       acceptingStates: Set[A#State]
-  ): CostEnrichedAutomatonBase = {
+  ): CostEnrichedAutomaton = {
     ParikhUtil.log(
       "CostEnrichedInitFinalAutomaton.apply ... aut: " + aut.hashCode() +
       ", initialState: " + initialState + ", acceptingStates: " + acceptingStates
@@ -128,10 +128,10 @@ object CostEnrichedInitFinalAutomaton {
     }
   }
 
-  def setInitial[A <: CostEnrichedAutomatonBase](
+  def setInitial[A <: CostEnrichedAutomaton](
       aut: A,
       initialState: A#State
-  ): _CostEnrichedInitFinalAutomaton[_ >: A <: CostEnrichedAutomatonBase] = {
+  ): _CostEnrichedInitFinalAutomaton[_ >: A <: CostEnrichedAutomaton] = {
     ParikhUtil.log(
       "CostEnrichedInitFinalAutomaton.setInitial ... aut: " + aut.hashCode() +
       ", initialState: " + initialState
@@ -144,10 +144,10 @@ object CostEnrichedInitFinalAutomaton {
     }
   }
 
-  def setFinal[A <: CostEnrichedAutomatonBase](
+  def setFinal[A <: CostEnrichedAutomaton](
       aut: A,
-      acceptingStates: Set[CostEnrichedAutomatonBase#State]
-  ): _CostEnrichedInitFinalAutomaton[_ >: A <: CostEnrichedAutomatonBase] = {
+      acceptingStates: Set[CostEnrichedAutomaton#State]
+  ): _CostEnrichedInitFinalAutomaton[_ >: A <: CostEnrichedAutomaton] = {
     ParikhUtil.log(
       "CostEnrichedInitFinalAutomaton.setFinal ... aut: " + aut.hashCode() +
       ", acceptingStates: " + acceptingStates
@@ -161,7 +161,7 @@ object CostEnrichedInitFinalAutomaton {
   }
 }
 
-case class _CostEnrichedInitFinalAutomaton[A <: CostEnrichedAutomatonBase](
+case class _CostEnrichedInitFinalAutomaton[A <: CostEnrichedAutomaton](
     override val underlying: A,
     val startState: A#State,
     val _acceptingStates: Set[A#State]
@@ -178,19 +178,19 @@ case class _CostEnrichedInitFinalAutomaton[A <: CostEnrichedAutomatonBase](
 
   override def isAccept(s: State): Boolean = acceptingStates.contains(s)
 
-  override def outgoingTransitionsWithVec(q: State) = {
+  override def outgoingTransitions(q: State) = {
     for (
-      p @ (s, _, _) <- underlying.outgoingTransitionsWithVec(q);
+      p @ (s, _, _) <- underlying.outgoingTransitions(q);
       if states.toSet.contains(s)
     )
       yield p
   }
 
-  override def incomingTransitionsWithVec(
+  override def incomingTransitions(
       t: State
   ) = {
     for (
-      p @ (s, _, _) <- underlying.incomingTransitionsWithVec(t);
+      p @ (s, _, _) <- underlying.incomingTransitions(t);
       if states.toSet.contains(s)
     )
       yield p

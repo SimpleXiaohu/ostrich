@@ -34,17 +34,18 @@ package ostrich.cesolver.preop
 
 import ostrich.automata.Automaton
 import ostrich.cesolver.automata.CostEnrichedInitFinalAutomaton
-import ostrich.cesolver.automata.CostEnrichedAutomatonBase
+import ostrich.cesolver.automata.CostEnrichedAutomaton
 import ap.parser.IExpression._
 import ap.parser.IBinJunctor
+import CostEnrichedAutomaton.{uniqueAcceptedWordLengths, uniqueLengthStates}
 
 object ConcatCEPreOp extends CEPreOp {
   override def toString(): String = "concatCEPreOp"
 
   private def addConcatPreRegsFormula(
-      concatLeft: CostEnrichedAutomatonBase,
-      concatRight: CostEnrichedAutomatonBase,
-      result: CostEnrichedAutomatonBase
+      concatLeft: CostEnrichedAutomaton,
+      concatRight: CostEnrichedAutomaton,
+      result: CostEnrichedAutomaton
   ): Unit = {
     val leftRegs = concatLeft.registers
     val rightRegs = concatRight.registers
@@ -64,12 +65,12 @@ object ConcatCEPreOp extends CEPreOp {
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val resultAut = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
+    val resultAut = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
     val argLengths = (
       for (argAuts <- argumentConstraints) yield {
         (for (
           aut <- argAuts;
-          lengths <- aut.asInstanceOf[CostEnrichedAutomatonBase].uniqueAcceptedWordLengths
+          lengths <- uniqueAcceptedWordLengths(aut.asInstanceOf[CostEnrichedAutomaton])
         )
           yield (aut, lengths)).toSeq.headOption
       }
@@ -81,7 +82,7 @@ object ConcatCEPreOp extends CEPreOp {
         val preImage =
           for (
             s <- resultAut.states;
-            if ((resultAut.uniqueLengthStates get s) match {
+            if ((uniqueLengthStates(resultAut) get s) match {
               case Some(l) => lengths.contains(l)
               case None    => true
             })
@@ -98,13 +99,13 @@ object ConcatCEPreOp extends CEPreOp {
       case None =>
         argLengths(1) match {
           case Some((lenAut, lengths))
-              if resultAut.uniqueAcceptedWordLengths.isDefined => {
+              if uniqueAcceptedWordLengths(resultAut).isDefined => {
             // the suffix needs to be of a certain length
-            val resLengths = resultAut.uniqueAcceptedWordLengths.get
+            val resLengths = uniqueAcceptedWordLengths(resultAut).get
             val preImage =
               for (
                 s <- resultAut.states;
-                if ((resultAut.uniqueLengthStates get s) match {
+                if ((uniqueLengthStates(resultAut) get s) match {
                   case Some(l) =>
                     resLengths
                       .find(resLength =>

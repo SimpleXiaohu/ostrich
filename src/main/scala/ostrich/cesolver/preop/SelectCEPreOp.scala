@@ -38,62 +38,65 @@ import ap.parser.ITerm
 import ostrich.cesolver.util.TermGenerator
 import ap.parser.IExpression
 import ap.basetypes.IdealInt
+import ostrich.cesolver.util.ParikhUtil.debugPrintln
+import ostrich.cesolver.automata.StringArrayAutomaton
 
-object LengthCEPreOp {
+object SelectCEPreOp {
 
-  private val termGen = TermGenerator()
-
-  def apply(length: ITerm): LengthCEPreOp = new LengthCEPreOp(length)
-
-  def lengthPreimage(
-      length: ITerm,
-      newReg: Boolean = true
-  ): CostEnrichedAutomaton = {
-    val preimage = new CostEnrichedAutomaton
-    val initalState = preimage.initialState
-
-    length match {
-      case IExpression.Const(IdealInt(value)) =>
-        PreOpUtil.automatonWithLen(value)
-      case _: ITerm =>
-        // 0 -> (sigma, 1) -> 0
-        preimage.addTransition(
-          initalState,
-          preimage.LabelOps.sigmaLabel,
-          initalState,
-          Seq(1)
-        )
-        preimage.setAccept(initalState, true)
-        // registers: (r0)
-        val reg = if (newReg) termGen.registerTerm else length
-        preimage.registers = Seq(reg)
-        // intFormula : r0 === `length`
-        if (newReg) preimage.regsRelation = reg === length
-        preimage
-    }
-
-  }
+  def apply(index: Int): SelectCEPreOp = new SelectCEPreOp(index)
 }
 
-/** Pre-op for length constraints.
-  * @param length
-  *   The length
+/** Pre-operator for array select.
+  * @param index
+  *  the selet index
   */
-class LengthCEPreOp(length: ITerm) extends CEPreOp {
+class SelectCEPreOp(index: Int) extends CEPreOp {
 
-  override def toString = "lengthCEPreOp"
+  override def toString = "selectCEPreOp"
 
   def apply(
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    (Iterator(Seq(LengthCEPreOp.lengthPreimage(length))), Seq())
+    val res = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
+    val sigmaLabel = (Char.MinValue, Char.MaxValue)
+    val emptyUpdate = Seq.fill(res.registers.length)(0)
+    val argAut = new StringArrayAutomaton
+    val old2new = res.states.map(s => (s, argAut.newState())).toMap
+    val acceptState = argAut.newState()
+    argAut.setAccept(acceptState, true)
+    // the array elements before the index
+    val preStates = Seq.fill(index*2)(argAut.newState())
+    for (i <- 0 until index) {
+      argAut.addTransition(preStates(i*2), sigmaLabel, preStates(i*2+1), emptyUpdate)
+    }
+    for (i <- 0 until index - 1) {
+      argAut.addArrayElementConnect(preStates(i*2+1), preStates(i*2+2))
+    }
+    // the array elements after the index
+    argAut.addTransition(acceptState, sigmaLabel, acceptState, emptyUpdate)
+    argAut.addArrayElementConnect(acceptState, acceptState)
+    // the array element at the index
+    for ((s, l, t, v) <- res.transitions) {
+      argAut.addTransition(old2new(s), l, old2new(t), v)
+    }
+    // connect the three parts
+    argAut.addArrayElementConnect(preStates(index*2-1), old2new(res.initialState))
+    for (s <- res.acceptingStates) {
+      argAut.addArrayElementConnect(old2new(s), acceptState)
+    }
+    argAut.addEpsilon(argAut.initialState, preStates(0))
+    argAut.registers = res.registers
+    argAut.regsRelation = res.regsRelation
+    argAut.toDot("selectCEPreOp")
+    (Iterator(Seq(argAut)), Seq())
   }
 
   /** Evaluate the described function; return <code>None</code> if the function
     * is not defined for the given arguments.
     */
   def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
-    Some(Seq(arguments(0).length))
+    val splitArray = StringArrayAutomaton.toArrayResult(arguments.head)
+    Some(splitArray(index))
   }
 }

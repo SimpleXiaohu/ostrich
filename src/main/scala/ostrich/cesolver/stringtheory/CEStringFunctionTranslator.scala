@@ -42,7 +42,7 @@ import ap.terfor.preds.Atom
 import ap.terfor.linearcombination.LinearCombination.Constant
 import ap.basetypes.IdealInt
 import ostrich.cesolver.preop._
-import ostrich.cesolver.automata.CostEnrichedAutomatonBase
+import ostrich.cesolver.automata.CostEnrichedAutomaton
 import ap.parser.Internal2InputAbsy
 import ostrich.OstrichStringFunctionTranslator
 import ostrich.cesolver.util.ParikhUtil.debugPrintln
@@ -172,7 +172,7 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
           val op = () => {
             val aut = ceAutDatabase
               .regex2Automaton(regex)
-              .asInstanceOf[CostEnrichedAutomatonBase]
+              .asInstanceOf[CostEnrichedAutomaton]
             ReplaceCEShortestPreOp(aut, replacement)
           }
           (op, List(a(0)), a(3))
@@ -184,7 +184,7 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
           val op = () => {
             val aut = ceAutDatabase
               .regex2Automaton(regex)
-              .asInstanceOf[CostEnrichedAutomatonBase]
+              .asInstanceOf[CostEnrichedAutomaton]
             ReplaceCELongestPreOp(aut, replacement)
           }
           (op, List(a(0)), a(3))
@@ -202,7 +202,7 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
           val op = () => {
             val aut = ceAutDatabase
               .regex2Automaton(regex)
-              .asInstanceOf[CostEnrichedAutomatonBase]
+              .asInstanceOf[CostEnrichedAutomaton]
             ReplaceAllCEPreOp(aut, matchStr)
           }
           (op, List(a(0)), a(3))
@@ -212,7 +212,7 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
 
       case FunPred(`str_split`) if (strDatabase isConcrete a(1))=> {
         val splitStr = strDatabase.term2Str(a(1)).get
-        Some((() => SplitCEPreOp(splitStr), List(a(0)), a(2)))
+        Some((() => SplitCEPreOp(splitStr), List(a(0), a(1)), a(2)))
         
       }
 

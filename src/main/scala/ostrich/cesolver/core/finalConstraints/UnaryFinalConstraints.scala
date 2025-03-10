@@ -32,6 +32,7 @@ package ostrich.cesolver.core.finalConstraints
 import ostrich.cesolver.util.ParikhUtil
 import ostrich.cesolver.automata.CEBasicOperations
 import ostrich.cesolver.automata.CostEnrichedAutomatonBase
+import ostrich.cesolver.automata.CostEnrichedAutomaton
 import ostrich.OFlags
 import ap.parser.ITerm
 import ap.parser.IFormula
@@ -39,6 +40,8 @@ import ap.parser.IExpression._
 import ap.parser.IBinJunctor
 import ap.api.PartialModel
 import ap.basetypes.IdealInt
+import ostrich.cesolver.automata.VectorAutomatonWrapper
+import ostrich.automata.AutomataUtils.findAcceptedWord
 
 class UnaryFinalConstraints(
     strDataBaseId: ITerm,
@@ -46,88 +49,48 @@ class UnaryFinalConstraints(
     flags: OFlags
 ) extends BaselineFinalConstraints(strDataBaseId, auts, flags) {
 
-  private def removeDupTransitions(
-      aut: CostEnrichedAutomatonBase
-  ): CostEnrichedAutomatonBase = {
-    val ceAut = new CostEnrichedAutomatonBase
-    val old2new = aut.states.map(_ -> ceAut.newState()).toMap
-    ceAut.initialState = old2new(aut.initialState)
-    for (state <- aut.states) {
-      if (aut.isAccept(state))
-        ceAut.setAccept(old2new(state), true)
-      val outTrans = aut.outgoingTransitionsWithVec(state)
-      val afterRemoveDup = outTrans
-        .groupBy { case (outState, _, vec) =>
-          (outState, vec)
-        }
-        .map { case (_, trans) =>
-          trans.head
-        }
-      for ((outState, label, vec) <- afterRemoveDup) {
-        ceAut.addTransition(old2new(state), label, old2new(outState), vec)
-      }
-    }
-    ceAut.registers = aut.registers
-    ceAut.regsRelation = aut.regsRelation
-    ceAut
-  }
-
   lazy val hasRegister: Boolean = auts.exists(_.registers.nonEmpty)
 
-  private val productAut = auts.reduce(_ product _)
+  private val productAut = auts.reduce((a1,a2) => (a1 & a2).asInstanceOf[CostEnrichedAutomatonBase])
 
-  private lazy val findModelAut =
-    if (!flags.simplifyAut) productAut
-    else {
-      val afterRemoveDup = removeDupTransitions(productAut)
-      if (flags.minimizeAutomata)
-        CEBasicOperations.minimizeHopcroft(
-          afterRemoveDup
-        )
-      else CEBasicOperations.removeDuplicatedReg(afterRemoveDup)
-    }
+  private lazy val findModelAut = productAut  // TODO: remove duplicated transitions 
 
   private lazy val checkSatAut =
     if (!flags.simplifyAut) productAut
     else if (hasRegister) {
-      CEBasicOperations.minimizeHopcroftByVec(
-        productAut
-      )
+      VectorAutomatonWrapper(productAut)
     } else {
       // if there is no registers, we do not generate LIA to check sat. Not used
       null
     }
 
-  if (ParikhUtil.debugOpt) {
-    // checkSatAut.toDot(strDataBaseId + "_checkSatAut")
-    findModelAut.toDot(strDataBaseId + "_findModelAut")
-  }
+  // if (ParikhUtil.debugOpt) {
+  //   // checkSatAut.toDot(strDataBaseId + "_checkSatAut")
+  //   findModelAut.toDot(strDataBaseId + "_findModelAut")
+  // }
 
   override lazy val getCompleteLIA: IFormula =
     if (!hasRegister) {
       findModelAut.regsRelation
     } else {
-      connectSimplify(
-        Seq(ParikhUtil.parikhImage(checkSatAut), checkSatAut.regsRelation),
-        IBinJunctor.And
-      )
+      checkSatAut.emptinessCheckFormula
     }
 
   override def getModel(partialModel: PartialModel): Option[Seq[Int]] = {
     ParikhUtil.log("Get model of string term " + strDataBaseId)
+    ParikhUtil.todo(
+        "UnaryFinalConstraints.getModel: findAcceptedWord: support both StringArrayAutomaton and CostEnrichedAutomaton"
+      )
     if (!hasRegister) findModelAut.getAcceptedWord
     else {
-      var registersModel = Map[ITerm, IdealInt]()
+      var registersModel = Map[ITerm, Int]()
       for (term <- auts.flatMap(_.registers))
         registersModel += (term -> FinalConstraints.evalTerm(
           term,
           partialModel
         ))
-      val res = ParikhUtil.findAcceptedWord(
-        Seq(findModelAut),
-        registersModel
-      )
-      ParikhUtil.log(s"The model of ${strDataBaseId} is generated")
+      val res = findModelAut.getAcceptedWordByRegisters(registersModel)
+      ParikhUtil.log(s"The model of ${strDataBaseId} is generated : ${res}")
       res
     }
   }

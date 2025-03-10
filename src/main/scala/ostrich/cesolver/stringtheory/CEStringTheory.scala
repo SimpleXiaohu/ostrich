@@ -67,15 +67,15 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
 
   private val ceSolver = new CESolver(this, flags)
   private val equalityPropagator = new OstrichEqualityPropagator(this)
-  private val arrayTheory = ExtArray(Seq(Sort.Integer), StringSort)
+  private lazy val arrayTheory = ExtArray(Seq(Sort.Integer), StringSort)
 
   lazy val ceAutDatabase = new CEAutDatabase(this, flags)
 
   // array functions and predicates
-  val select = arrayTheory.select
-  val store = arrayTheory.store
-  val _select = arrayTheory._select
-  val _store = arrayTheory._store
+  lazy val select = arrayTheory.select
+  lazy val store = arrayTheory.store
+  val _select = functionPredicateMap(select)
+  val _store = functionPredicateMap(store)
 
   // substring special cases
   lazy val str_substr_0_lenMinus1 =
@@ -111,7 +111,7 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
     false
   )
 
-  lazy val specialSubstrFucs = List(
+  lazy val specialSubstrFuncs = List(
     str_substr_0_lenMinus1,
     str_substr_n_lenMinusM,
     str_substr_lenMinus1_1,
@@ -120,7 +120,9 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
     str_substr_indexofc0Plus1_tail
   )
 
-  override protected def extraExtraFunctions: Seq[IFunction] = specialSubstrFucs
+  lazy val arrayFuncs = List(select, store)
+
+  override protected def extraExtraFunctions: Seq[IFunction] = specialSubstrFuncs ++ arrayFuncs
 
   // Set of the predicates that are fully supported at this point
   private val supportedPreds: Set[Predicate] =
@@ -238,11 +240,13 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
             val arrayRes = StringArrayAutomaton.toArrayResult(w)
             val resFormula = conj(
               for ((wi, i) <- arrayRes.zipWithIndex)
-                yield _select(Seq(l(x), l(i), l(strDatabase.list2Id(wi))))
+                yield _store(Seq(l(x), l(i), l(strDatabase.list2Id(wi))))
             )
             resFormula
+            _store(Seq(l(x), l(0), l(strDatabase.list2Id(Seq()))))
           }
         )
+
 
         val stringFormulas = conj(goal.facts.iterator filter { f =>
           !Seqs.disjointSeq(f.predicates, predicates)

@@ -58,12 +58,12 @@ object CEBasicOperations {
   private val directlyUnwindUpper = 20
   private val termGen = TermGenerator()
 
-  def toBricsAutomaton(aut: CostEnrichedAutomatonBase): BAutomaton = {
+  def toBricsAutomaton(aut: CostEnrichedAutomaton): BAutomaton = {
     val baut = new BAutomaton
     baut.setDeterministic(false)
 
     val old2new = aut.states.map(s => s -> new State()).toMap
-    for ((s, l, t, v) <- aut.transitionsWithVec) {
+    for ((s, l, t, v) <- aut.transitions) {
       old2new(s).addTransition(new Transition(l._1, l._2, old2new(t)))
     }
     for (s <- aut.acceptingStates) {
@@ -74,17 +74,17 @@ object CEBasicOperations {
   }
 
   def unionWithoutRegs(
-      auts: Seq[CostEnrichedAutomatonBase]
-  ): CostEnrichedAutomatonBase = {
+      auts: Seq[CostEnrichedAutomaton]
+  ): CostEnrichedAutomaton = {
     auts.foreach(registersMustBeEmpty)
     val bauts = auts.map(toBricsAutomaton)
     BricsAutomatonWrapper(BasicOperations.union(bauts.asJava))
   }
 
   def union(
-      auts: Seq[CostEnrichedAutomatonBase],
+      auts: Seq[CostEnrichedAutomaton],
       autsFormulaIsSame: Boolean = false
-  ): CostEnrichedAutomatonBase = {
+  ): CostEnrichedAutomaton = {
     ParikhUtil.log("CEBasicOperations.union: compute the union of automata")
     if (auts.isEmpty) return BricsAutomatonWrapper(BasicAutomata.makeEmpty)
     if (
@@ -111,8 +111,8 @@ object CEBasicOperations {
     val finalDisjList = ArrayBuffer[IFormula]()
     // map each automaton to the formula that is satisfied iff
     // the union of the automata chooses this automaton
-    val partitionFormula = MHashMap[CostEnrichedAutomatonBase, IFormula]()
-    val aut2newRegIdx = MHashMap[CostEnrichedAutomatonBase, Int]()
+    val partitionFormula = MHashMap[CostEnrichedAutomaton, IFormula]()
+    val aut2newRegIdx = MHashMap[CostEnrichedAutomaton, Int]()
 
     for (aut <- auts) {
       newRegisters += termGen.registerTerm
@@ -123,7 +123,7 @@ object CEBasicOperations {
 
     for (aut <- auts) {
       val old2new = aut.states.map(s => (s -> ceAut.newState())).toMap
-      for ((s, l, t, v) <- aut.transitionsWithVec) {
+      for ((s, l, t, v) <- aut.transitions) {
         ap.util.Timeout.check
         val preFill = Seq.fill(prefixlen)(0)
         val postFill = Seq.fill(oldRegsLen - prefixlen - v.size)(0)
@@ -160,20 +160,20 @@ object CEBasicOperations {
   }
 
   def complementWithoutRegs(
-      aut: CostEnrichedAutomatonBase
-  ): CostEnrichedAutomatonBase = {
+      aut: CostEnrichedAutomaton
+  ): CostEnrichedAutomaton = {
     ParikhUtil.todo(
-      "CEBasicOperations.complementWithoutRegs: Rewrite this function by using CostEnrichedAutomatonBase and add ap.util.Timeout.check, to avoid that the timeout is not checked and the function is not terminated",
+      "CEBasicOperations.complementWithoutRegs: Rewrite this function by using CostEnrichedAutomaton and add ap.util.Timeout.check, to avoid that the timeout is not checked and the function is not terminated",
       0
     )
     registersMustBeEmpty(aut)
     val afterDetermine = determinate(aut)
-    val compAut = new CostEnrichedAutomatonBase
+    val compAut = new CostEnrichedAutomaton
     val alwaysAccpetS = compAut.newState()
     val old2new =
       afterDetermine.states.map(s => (s, compAut.newState())).toMap
     compAut.initialState = old2new(afterDetermine.initialState)
-    for ((s, l, t, vec) <- afterDetermine.transitionsWithVec) {
+    for ((s, l, t, vec) <- afterDetermine.transitions) {
       compAut.addTransition(old2new(s), l, old2new(t), vec)
     }
     // neg accepted states
@@ -185,7 +185,7 @@ object CEBasicOperations {
     for (state <- afterDetermine.states) {
       ap.util.Timeout.check
       val outLabelsSorted =
-        afterDetermine.outgoingTransitionsWithVec(state).map(_._2).toSeq.sorted
+        afterDetermine.outgoingTransitions(state).map(_._2).toSeq.sorted
       var maxi: Int = (Char.MinValue).toInt
       for ((min, max) <- outLabelsSorted) {
         if (maxi < min)
@@ -218,8 +218,8 @@ object CEBasicOperations {
   }
 
   def complement(
-      aut: CostEnrichedAutomatonBase
-  ): CostEnrichedAutomatonBase = {
+      aut: CostEnrichedAutomaton
+  ): CostEnrichedAutomaton = {
     ParikhUtil.log(
       "CEBasicOperations.complement: compute the complement of automata"
     )
@@ -227,19 +227,19 @@ object CEBasicOperations {
   }
 
   def overComplement(
-      aut: CostEnrichedAutomatonBase
-  ): CostEnrichedAutomatonBase = {
+      aut: CostEnrichedAutomaton
+  ): CostEnrichedAutomaton = {
     ParikhUtil.log(
       "CEBasicOperations.overComplement: compute the over complement of automata"
     )
     val afterDetermine = determinate(aut)
-    val overCompAut = new CostEnrichedAutomatonBase
+    val overCompAut = new CostEnrichedAutomaton
     val alwaysAccpetS = overCompAut.newState()
     // val mergedOldAcceptStates = overCompAut.newState()
     val old2new =
       afterDetermine.states.map(s => (s, overCompAut.newState())).toMap
     overCompAut.initialState = old2new(afterDetermine.initialState)
-    for ((s, l, t, vec) <- afterDetermine.transitionsWithVec) {
+    for ((s, l, t, vec) <- afterDetermine.transitions) {
       val newVec = if (afterDetermine.isAccept(t)) vec :+ 1 else vec :+ 0
       overCompAut.addTransition(old2new(s), l, old2new(t), newVec)
       // if (afterDetermine.isAccept(t))
@@ -270,7 +270,7 @@ object CEBasicOperations {
     for (state <- afterDetermine.states) {
       ap.util.Timeout.check
       val outLabelsSorted =
-        afterDetermine.outgoingTransitionsWithVec(state).map(_._2).toSeq.sorted
+        afterDetermine.outgoingTransitions(state).map(_._2).toSeq.sorted
       var maxi: Int = (Char.MinValue).toInt
       for ((min, max) <- outLabelsSorted) {
         if (maxi < min)
@@ -299,10 +299,10 @@ object CEBasicOperations {
     overCompAut
   }
 
-  def intersection[A <: CostEnrichedAutomatonBase](
+  def intersection[A <: CostEnrichedAutomaton](
       aut1: A,
       aut2: A
-  ): CostEnrichedAutomatonBase = {
+  ): CostEnrichedAutomaton = {
     ParikhUtil.log("CEBasicOperations.intersection: intersect automata")
     val ceAut = new CostEnrichedAutomaton
     val initialState1 = aut1.initialState
@@ -325,15 +325,15 @@ object CEBasicOperations {
       val (from1, from2) = worklist.pop()
       val from = pair2state(from1, from2)
       for (
-        (to1, label1, vec1) <- aut1.outgoingTransitionsWithVec(from1);
-        (to2, label2, vec2) <- aut2.outgoingTransitionsWithVec(from2)
+        (to1, label1, vec1) <- aut1.outgoingTransitions(from1);
+        (to2, label2, vec2) <- aut2.outgoingTransitions(from2)
       ) {
         // intersect transition
         aut1.LabelOps.intersectLabels(label1, label2) match {
           case Some(label) => {
             val to = pair2state.getOrElseUpdate(
               (to1, to2), {
-                worklist.push((to1, to2))
+                worklist.push((to1, to2))  // only push when it is new
                 ceAut.newState()
               }
             )
@@ -362,9 +362,9 @@ object CEBasicOperations {
   }
 
   def diffWithoutRegs(
-      aut1: CostEnrichedAutomatonBase,
-      aut2: CostEnrichedAutomatonBase
-  ): CostEnrichedAutomatonBase = {
+      aut1: CostEnrichedAutomaton,
+      aut2: CostEnrichedAutomaton
+  ): CostEnrichedAutomaton = {
     val baut1 = toBricsAutomaton(aut1)
     val baut2 = toBricsAutomaton(aut2)
     BricsAutomatonWrapper {
@@ -373,9 +373,9 @@ object CEBasicOperations {
   }
 
   def diff(
-      a1: CostEnrichedAutomatonBase,
-      a2: CostEnrichedAutomatonBase
-  ): CostEnrichedAutomatonBase = {
+      a1: CostEnrichedAutomaton,
+      a2: CostEnrichedAutomaton
+  ): CostEnrichedAutomaton = {
     ParikhUtil.log("CEBasicOperations.diff: compute the difference of automata")
     if (a1.registers.isEmpty && a2.registers.isEmpty)
       return diffWithoutRegs(a1, a2)
@@ -383,8 +383,8 @@ object CEBasicOperations {
   }
 
   def concatenate(
-      auts: Seq[CostEnrichedAutomatonBase]
-  ): CostEnrichedAutomatonBase = {
+      auts: Seq[CostEnrichedAutomaton]
+  ): CostEnrichedAutomaton = {
     ParikhUtil.log("CEBasicOperations.concatenate: concatenate automata")
     if (auts.isEmpty)
       return BricsAutomatonWrapper.makeEmpty()
@@ -397,7 +397,7 @@ object CEBasicOperations {
 
     var prefixlen = 0
     for (aut <- auts) {
-      for ((s, l, t, v) <- aut.transitionsWithVec) {
+      for ((s, l, t, v) <- aut.transitions) {
         ap.util.Timeout.check
         ceAut.addTransition(
           old2new(s),
@@ -424,7 +424,7 @@ object CEBasicOperations {
     ceAut
   }
 
-  private def registersMustBeEmpty(aut: CostEnrichedAutomatonBase): Unit = {
+  private def registersMustBeEmpty(aut: CostEnrichedAutomaton): Unit = {
     if (aut.registers.nonEmpty) {
       if (ParikhUtil.debugOpt)
         aut.toDot("registersMustBeEmpty_assertion_failed")
@@ -433,9 +433,9 @@ object CEBasicOperations {
   }
 
   def repeatUnwind(
-      aut: CostEnrichedAutomatonBase,
+      aut: CostEnrichedAutomaton,
       min: Int
-  ): CostEnrichedAutomatonBase = {
+  ): CostEnrichedAutomaton = {
     ParikhUtil.log(
       "CEBasicOperations.repeatUnwind: directly unwind repeat automata, min = " + min + ", max = " + "inf"
     )
@@ -449,10 +449,10 @@ object CEBasicOperations {
   }
 
   def repeatUnwind(
-      aut: CostEnrichedAutomatonBase,
+      aut: CostEnrichedAutomaton,
       min: Int,
       max: Int
-  ): CostEnrichedAutomatonBase = {
+  ): CostEnrichedAutomaton = {
     ParikhUtil.log(
       "CEBasicOperations.repeatUnwind: directly unwind automata, min = " + min + ", max = " + max
     )
@@ -468,7 +468,7 @@ object CEBasicOperations {
 
     var prefixlen = 0
     for (aut <- auts) {
-      for ((s, l, t, v) <- aut.transitionsWithVec){
+      for ((s, l, t, v) <- aut.transitions){
         ap.util.Timeout.check
         ceAut.addTransition(
           old2new(s),
@@ -508,11 +508,11 @@ object CEBasicOperations {
   }
 
   def repeat(
-      aut: CostEnrichedAutomatonBase,
+      aut: CostEnrichedAutomaton,
       min: Int,
       max: Int,
       unwind: Boolean
-  ): CostEnrichedAutomatonBase = {
+  ): CostEnrichedAutomaton = {
     if (unwind | max < directlyUnwindUpper / aut.states.size) {
       return repeatUnwind(aut, min, max)
     }
@@ -532,7 +532,7 @@ object CEBasicOperations {
     if (min == 0)
       ceAut.setAccept(ceAut.initialState, true)
     // construct update of the new register
-    for ((t, l, v) <- aut.outgoingTransitionsWithVec(aut.initialState))
+    for ((t, l, v) <- aut.outgoingTransitions(aut.initialState))
       ceAut.addTransition(
         old2new(aut.initialState),
         l,
@@ -540,10 +540,10 @@ object CEBasicOperations {
         v ++ Seq(1)
       )
     // construct other updates
-    for ((s, l, t, v) <- aut.transitionsWithVec; if s != aut.initialState)
+    for ((s, l, t, v) <- aut.transitions; if s != aut.initialState)
       ceAut.addTransition(old2new(s), l, old2new(t), v ++ Seq(0))
     for (s <- aut.acceptingStates) {
-      for ((t, l, v) <- aut.outgoingTransitionsWithVec(aut.initialState))
+      for ((t, l, v) <- aut.outgoingTransitions(aut.initialState))
         ceAut.addTransition(old2new(s), l, old2new(t), v ++ Seq(1))
       ceAut.setAccept(old2new(s), true)
     }
@@ -563,7 +563,7 @@ object CEBasicOperations {
     ceAut
   }
 
-  def optional(aut: CostEnrichedAutomatonBase): CostEnrichedAutomatonBase = {
+  def optional(aut: CostEnrichedAutomaton): CostEnrichedAutomaton = {
     ParikhUtil.log("CEBasicOperations.optional: optional automata")
     aut.setAccept(aut.initialState, true)
     aut.regsRelation = or(
@@ -572,222 +572,7 @@ object CEBasicOperations {
     aut
   }
 
-  // NOTE: Following functions are only complete for emptiness check. These funcitons do not reserve the semantic of the automaton.
-  // For example, the automaton generated by epsilonClosureByVec may reject some strings that are not rejected by the original automaton.
-  // ---------------------------------------------------------------------------------------------------------------------
-  private def epsilonClosureByVec(
-      aut: CostEnrichedAutomatonBase
-  ): CostEnrichedAutomatonBase = {
-    if (aut.registers.isEmpty) return aut
-    ParikhUtil.log(
-      "CEBasicOperations.epsilonClosureByVec: compute epsilon closure of automata by considering registers update (0,...,0) as epsilon"
-    )
-    val ceAut = new CostEnrichedAutomaton
-    val old2new = aut.states.map(s => (s, ceAut.newState())).toMap
-    for (s <- aut.states) {
-      if (aut.isAccept(s))
-        ceAut.setAccept(old2new(s), true)
-      // get the epsilon closure
-      val epsClosureSet = MHashSet[State](s)
-      val workstack = MStack[State](s)
-      val seen = MHashSet[State](s)
-      while (workstack.nonEmpty) {
-        ap.util.Timeout.check
-        val cur = workstack.pop()
-        for ((t, _, v) <- aut.outgoingTransitionsWithVec(cur)) {
-          if (v.forall(_ == 0) && !seen(t)) {
-            workstack.push(t)
-            epsClosureSet.add(t)
-            if (aut.isAccept(t))
-              ceAut.setAccept(old2new(s), true)
-            seen.add(t)
-          }
-        }
-      }
-      // generate new transitions
-      for (
-        se <- epsClosureSet; (t, l, v) <- aut.outgoingTransitionsWithVec(se);
-        if v.exists(_ != 0)
-      )
-        ceAut.addTransition(old2new(s), l, old2new(t), v)
-    }
-    ceAut.initialState = old2new(aut.initialState)
-
-    ceAut.registers = aut.registers
-    ceAut.regsRelation = aut.regsRelation
-    ceAut
-  }
-
-  private def determinateByVec(
-      aut: CostEnrichedAutomatonBase
-  ): CostEnrichedAutomatonBase = {
-    if (aut.registers.isEmpty) return aut
-    val ceAut = new CostEnrichedAutomaton
-    val seq2new = new MHashMap[Set[State], State]
-    val workstack = new MStack[Set[State]]
-
-    val initialState = ceAut.initialState
-    seq2new += (Set(aut.initialState) -> initialState)
-    workstack.push(Set(aut.initialState))
-
-    while (workstack.nonEmpty) {
-      ap.util.Timeout.check
-
-      val curSeq = workstack.pop()
-      val curState = seq2new(curSeq)
-      val curTrans = new MHashMap[Seq[Int], Set[State]]
-      for (s <- curSeq) {
-        for ((t, l, v) <- aut.outgoingTransitionsWithVec(s)) {
-          if (curTrans.contains(v))
-            curTrans(v) = curTrans(v) ++ Set(t)
-          else
-            curTrans += (v -> Set(t))
-        }
-      }
-      for ((v, seq) <- curTrans) {
-        if (!seq2new.contains(seq)) {
-          seq2new += (seq -> ceAut.newState())
-          workstack.push(seq)
-        }
-        ceAut.addTransition(
-          curState,
-          BricsTLabelOps.sigmaLabel,
-          seq2new(seq),
-          v
-        )
-      }
-    }
-
-    for ((seq, s) <- seq2new) {
-      if (seq.exists(aut.isAccept))
-        ceAut.setAccept(s, true)
-    }
-
-    ceAut.registers = aut.registers
-    ceAut.regsRelation = aut.regsRelation
-    ceAut
-  }
-
-  private def partitionStatesByVec(
-      aut: CostEnrichedAutomatonBase
-  ) = {
-    if (aut.registers.isEmpty) aut
-    val pairs = new MHashSet[Set[State]]()
-    for (s <- aut.states; t <- aut.states; if s != t)
-      pairs.add(Set(s, t))
-    val pair2dependingList = new MHashMap[Set[State], ArrayBuffer[Set[State]]]()
-    for (pair <- pairs) {
-      val state1 = pair.head
-      val state2 = pair.last
-      for ((source1, l1, v1) <- aut.incomingTransitionsWithVec(state1)) {
-        for (
-          (source2, l2, v2) <- aut.incomingTransitionsWithVec(state2);
-          if v1 == v2
-        ) {
-          ap.util.Timeout.check
-          if (source1 != source2) {
-            pair2dependingList.getOrElseUpdate(pair, ArrayBuffer()) += Set(
-              source1,
-              source2
-            )
-          }
-        }
-      }
-    }
-    val distinguishedPairs = new MHashSet[Set[State]]()
-    val baseDistinguishedPairs = new MHashSet[Set[State]]()
-    for (pair <- pairs) {
-      if (aut.isAccept(pair.head) != aut.isAccept(pair.last)) {
-        baseDistinguishedPairs.add(pair)
-      } else {
-        val outVecs1 = aut
-          .outgoingTransitionsWithVec(pair.head)
-          .map { case (_, _, v) => v }
-          .toSet
-        val outVecs2 = aut
-          .outgoingTransitionsWithVec(pair.last)
-          .map { case (_, _, v) => v }
-          .toSet
-        if (outVecs1 != outVecs2) {
-          baseDistinguishedPairs.add(pair)
-        }
-      }
-    }
-    var lastDistinguishedPairs = baseDistinguishedPairs
-    while (lastDistinguishedPairs.nonEmpty) {
-      distinguishedPairs ++= lastDistinguishedPairs
-      val newDistinguishedPairs = new MHashSet[Set[State]]()
-      for (
-        pair <- lastDistinguishedPairs; if pair2dependingList.contains(pair)
-      ) {
-        for (dependingPair <- pair2dependingList(pair)) {
-          if (!distinguishedPairs.contains(dependingPair)) {
-            newDistinguishedPairs.add(dependingPair)
-          }
-        }
-      }
-      lastDistinguishedPairs = newDistinguishedPairs
-    }
-    val s2equivalentClass = new MHashMap[State, MHashSet[State]]
-    for (s <- aut.states)
-      s2equivalentClass += (s -> MHashSet(s))
-    for (pair <- pairs) {
-      if (!distinguishedPairs.contains(pair)) {
-        val s1 = pair.head
-        val s2 = pair.last
-        s2equivalentClass(s1) ++= s2equivalentClass(s2)
-        s2equivalentClass(s2) = s2equivalentClass(s1)
-      }
-    }
-    val equalClass2rep = new MHashMap[Set[State], State]
-    val s2reprensentive = new MHashMap[State, State]
-    for (equalClass <- s2equivalentClass.values) {
-      equalClass2rep.getOrElseUpdate(equalClass.toSet, aut.newState())
-    }
-    for ((s, set) <- s2equivalentClass) {
-      s2reprensentive(s) = equalClass2rep(set.toSet)
-    }
-    s2reprensentive
-  }
-
-  def minimizeHopcroftByVec(
-      aut: CostEnrichedAutomatonBase
-  ): CostEnrichedAutomatonBase = {
-    if (aut.registers.isEmpty) return aut
-    ParikhUtil.log(
-      "CEBasicOperations.minimizeHopcroftByVec: minimize automata according to registers updates (do not minimize if the automata is much larger after determinization)"
-    )
-    val afterEpsilonClosure = epsilonClosureByVec(aut)
-    val afterDetermine = determinateByVec(afterEpsilonClosure)
-    ParikhUtil.log(
-      "aut size is " + aut
-        .size() + ", afterDetermineByVec size is " + afterDetermine.size()
-    )
-    if (
-      afterDetermine.size() > ParikhUtil.MAX_MINIMIZE_SIZE
-    ) // the overhead of minimization is too large (heuristic)
-      return if (aut.size() < afterDetermine.size()) aut else afterDetermine
-    if (
-      afterDetermine.size() / ParikhUtil.MAX_DETERMIN_EXPAND > aut.size()
-    ) // the minimization is not effective (heuristic)
-      return aut
-    val s2representive = partitionStatesByVec(afterDetermine)
-    val ceAut = new CostEnrichedAutomaton
-    ceAut.initialState = s2representive(afterDetermine.initialState)
-    for ((s, l, t, v) <- afterDetermine.transitionsWithVec)
-      ceAut.addTransition(s2representive(s), l, s2representive(t), v)
-    for (s <- afterDetermine.acceptingStates)
-      ceAut.setAccept(s2representive(s), true)
-    ceAut.regsRelation = afterDetermine.regsRelation
-    ceAut.registers = afterDetermine.registers
-    ParikhUtil.log(
-      "After minimizeHopcroftByVec, size is " + ceAut.size()
-    )
-    removeDuplicatedReg(ceAut)
-  }
-  // ---------------------------------------------------------------------------------------------------------------------
-
-  private def determinate(aut: CostEnrichedAutomatonBase) = {
+  private def determinate(aut: CostEnrichedAutomaton) = {
     val ceAut = new CostEnrichedAutomaton
     val powerset2new = new MHashMap[Set[State], State]
     val workstack = new MStack[Set[State]]
@@ -805,11 +590,11 @@ object CEBasicOperations {
       val outLabels =
         for (
           s <- curPowerSet;
-          (t, l, v) <- aut.outgoingTransitionsWithVec(s)
+          (t, l, v) <- aut.outgoingTransitions(s)
         ) yield l
       val outLabelsEnumerator = new CETLabelEnumerator(outLabels)
       for (
-        s <- curPowerSet; (t, l, v) <- aut.outgoingTransitionsWithVec(s);
+        s <- curPowerSet; (t, l, v) <- aut.outgoingTransitions(s);
         splitlbl <- outLabelsEnumerator.enumLabelOverlap(l)
       ) {
         val newGoToStates =
@@ -839,7 +624,7 @@ object CEBasicOperations {
     ceAut
   }
 
-  private def partitionStates(aut: CostEnrichedAutomatonBase) = {
+  private def partitionStates(aut: CostEnrichedAutomaton) = {
     val pairs = new MHashSet[Set[State]]()
     for (s <- aut.states; t <- aut.states; if s != t)
       pairs.add(Set(s, t))
@@ -847,9 +632,9 @@ object CEBasicOperations {
     for (pair <- pairs) {
       val state1 = pair.head
       val state2 = pair.last
-      for ((source1, l1, v1) <- aut.incomingTransitionsWithVec(state1)) {
+      for ((source1, l1, v1) <- aut.incomingTransitions(state1)) {
         for (
-          (source2, l2, v2) <- aut.incomingTransitionsWithVec(state2);
+          (source2, l2, v2) <- aut.incomingTransitions(state2);
           if (l1, v1).equals((l2, v2))
         ) {
           ap.util.Timeout.check
@@ -869,11 +654,11 @@ object CEBasicOperations {
         baseDistinguishedPairs.add(pair)
       } else {
         val outVecs1 = aut
-          .outgoingTransitionsWithVec(pair.head)
+          .outgoingTransitions(pair.head)
           .map { case (_, l, v) => (l, v) }
           .toSet
         val outVecs2 = aut
-          .outgoingTransitionsWithVec(pair.last)
+          .outgoingTransitions(pair.last)
           .map { case (_, l, v) => (l, v) }
           .toSet
         if (outVecs1 != outVecs2) {
@@ -917,8 +702,8 @@ object CEBasicOperations {
   }
 
   def minimizeHopcroft(
-      aut: CostEnrichedAutomatonBase
-  ): CostEnrichedAutomatonBase = {
+      aut: CostEnrichedAutomaton
+  ): CostEnrichedAutomaton = {
     ParikhUtil.log(
       "CEBasicOperations.minimizeHopcroft: minimize automata"
     )
@@ -938,7 +723,7 @@ object CEBasicOperations {
     val s2representive = partitionStates(afterDetermine)
     val ceAut = new CostEnrichedAutomaton
     ceAut.initialState = s2representive(afterDetermine.initialState)
-    for ((s, l, t, v) <- afterDetermine.transitionsWithVec)
+    for ((s, l, t, v) <- afterDetermine.transitions)
       ceAut.addTransition(s2representive(s), l, s2representive(t), v)
     for (s <- afterDetermine.acceptingStates)
       ceAut.setAccept(s2representive(s), true)
@@ -949,8 +734,8 @@ object CEBasicOperations {
   }
 
   def removeDuplicatedReg(
-      aut: CostEnrichedAutomatonBase
-  ): CostEnrichedAutomatonBase = {
+      aut: CostEnrichedAutomaton
+  ): CostEnrichedAutomaton = {
     if (aut.registers.isEmpty) return aut
     ParikhUtil.log(
       "CEBasicOperations.removeDuplicatedReg: remove duplicated registers"
@@ -966,7 +751,7 @@ object CEBasicOperations {
     }
     // transpose the vectors, so that each vector is a column containing all updates of a register
     val vectorsT =
-      aut.transitionsWithVec
+      aut.transitions
         .map { case (_, _, _, v) => v }
         .toSeq
         .transpose
@@ -1003,7 +788,7 @@ object CEBasicOperations {
       removeIdxs ++= regidxs.tail
     }
     newRegisters = seqRemoveValuesAtIdxs(newRegisters, removeIdxs.toSet)
-    for ((from, lbl, to, vec) <- aut.transitionsWithVec) {
+    for ((from, lbl, to, vec) <- aut.transitions) {
       ceAut.addTransition(
         old2new(from),
         lbl,
@@ -1020,8 +805,8 @@ object CEBasicOperations {
   }
 
   def removeDeadState(
-      aut: CostEnrichedAutomatonBase
-  ): CostEnrichedAutomatonBase = {
+      aut: CostEnrichedAutomaton
+  ): CostEnrichedAutomaton = {
     ParikhUtil.log(
       "CEBasicOperations.removeDeadState: remove states that can not reach the final state"
     )
@@ -1035,7 +820,7 @@ object CEBasicOperations {
     while (workstack.nonEmpty) {
       ap.util.Timeout.check
       val cur = workstack.pop()
-      for ((s, l, v) <- aut.incomingTransitionsWithVec(cur)) {
+      for ((s, l, v) <- aut.incomingTransitions(cur)) {
         ceAut.addTransition(old2new(s), l, old2new(cur), v)
         if (!seen(s)) {
           workstack.push(s)

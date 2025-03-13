@@ -41,12 +41,17 @@ import OFlags.CEABackend.{Unary, Baseline}
 import ostrich.cesolver.util.ParikhUtil
 import ap.CmdlMain
 
+object  CEStringTheoryBuilder {
+  val name = "OSTRICH-CEA"
+  val version = "0.0.1"
+}
+
 /** The entry class of the Ostrich string solver.
   */
 class CEStringTheoryBuilder extends OstrichStringTheoryBuilder {
+  import CEStringTheoryBuilder._
 
-  override val name = "OSTRICH-CEA"
-  val version = "1.2.1"
+  override val name = CEStringTheoryBuilder.name
 
   Console.withOut(Console.err) {
     println

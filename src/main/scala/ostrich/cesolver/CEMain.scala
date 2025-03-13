@@ -35,6 +35,8 @@ package ostrich.cesolver
 import ap.ParallelFileProver
 import ap.parameters.Param
 import ostrich.cesolver.util.ParikhUtil
+import ostrich.cesolver.stringtheory.CEStringTheory
+import ostrich.cesolver.stringtheory.CEStringTheoryBuilder
 
 /**
  * Wrapper around <code>ap.CmdlMain</code>, adding the option
@@ -42,14 +44,14 @@ import ostrich.cesolver.util.ParikhUtil
  */
 object CEMain {
 
-  val version = "unstable build (Princess: " + ap.CmdlMain.version + ")"
+  val version = CEStringTheoryBuilder.version + "(Princess: " + ap.CmdlMain.version + ")"
 
   /**
    * The options forwarded to Princess. They will be overwritten by options
    * specified on the command line, so it is possible to provide more specific
    * string solver options on the command line.
    */
-  val options = List("-stringSolver=ostrich.cesolver.stringtheory.CEStringTheory", "-logo")
+  val options = List("-stringSolver=ostrich.cesolver.stringtheory.CEStringTheory", "-seqSolver=ostrich.cesolver.sequencetheory.CESeqTheory", "-logo")
 
   ParallelFileProver.addPortfolio(
     "strings", arguments => {

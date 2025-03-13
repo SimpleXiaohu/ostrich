@@ -34,7 +34,7 @@ import ostrich.cesolver.util.TermGenerator
 import ap.parser.IExpression
 import ap.basetypes.IdealInt
 import ostrich.cesolver.util.ParikhUtil.debugPrintln
-import ostrich.cesolver.automata.StringArrayAutomaton
+import ostrich.cesolver.automata.StringSeqAutomaton
 
 object SplitCEPreOp {
 
@@ -54,7 +54,7 @@ class SplitCEPreOp(splitString: String) extends CEPreOp {
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val res = resultConstraint.asInstanceOf[StringArrayAutomaton]
+    val res = resultConstraint.asInstanceOf[StringSeqAutomaton]
     val argAut = new CostEnrichedAutomaton
     val old2new = res.states.map(s => (s, argAut.newState())).toMap
     argAut.initialState = (old2new(res.initialState))
@@ -62,7 +62,7 @@ class SplitCEPreOp(splitString: String) extends CEPreOp {
     for (s <- res.acceptingStates) { argAut.setAccept(old2new(s), true) }
     for ((s, l, t, v) <- res.transitions) { argAut.addTransition(old2new(s), l, old2new(t), v) }
     // replace the array spliter to the split string
-    for (s <- res.states; t <- res.nextArrayElements(s)) {
+    for (s <- res.states; t <- res.nextSeqElements(s)) {
       val newStates = Seq.fill(splitString.length + 1)(argAut.newState())
       for (i <- 0 until splitString.length) {
         argAut.addTransition(
@@ -88,7 +88,7 @@ class SplitCEPreOp(splitString: String) extends CEPreOp {
     val splitArray = arguments(0).map(_.toChar).mkString.split(splitString)
     val string2SeqInt = splitArray.map(_.toCharArray.map(_.toInt))
     val combinedWithArraySpliter = string2SeqInt
-      .flatMap(x => x :+ StringArrayAutomaton.arraySplitter)
+      .flatMap(x => x :+ StringSeqAutomaton.arraySplitter)
     Some(combinedWithArraySpliter)
   }
 }

@@ -69,8 +69,8 @@ import ap.parser.IConstant
 import ap.parser.SimplifyingConstantSubstVisitor
 import ap.parser.IExpression
 import ostrich.cesolver.preop.SplitCEPreOp
-import ostrich.cesolver.automata.StringArrayAutomaton
-import _root_.ostrich.cesolver.preop.SelectCEPreOp
+import ostrich.cesolver.automata.StringSeqAutomaton
+import _root_.ostrich.cesolver.preop.SeqNthCEPreOp
 
 object ParikhExploration {
 
@@ -153,7 +153,7 @@ class ParikhExploration(
         arrTerms += arr
         (op, Seq(str, sep), arr)
       }
-      case (op: SelectCEPreOp, Seq(arr, index), str) => {
+      case (op: SeqNthCEPreOp, Seq(arr, index), str) => {
         val freshIndex = termGen.intTerm
         arrTerms += arr
         integerTerms += freshIndex
@@ -552,7 +552,7 @@ class ParikhExploration(
       if {
         if (!(coveredTerms contains t)) {
           val totalizedAut = if (arrTerms contains t) {
-            StringArrayAutomaton.makeAnyArray()
+            StringSeqAutomaton.makeAnySeq()
           } else {
             BricsAutomatonWrapper.makeAnyString
           }

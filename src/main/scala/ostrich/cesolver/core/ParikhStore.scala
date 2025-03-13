@@ -40,7 +40,7 @@ import ap.parser.ITerm
 import ostrich.OFlags
 import ap.parser.IFormula
 import ostrich.automata.Automaton
-import ostrich.cesolver.automata.StringArrayAutomaton
+import ostrich.cesolver.automata.StringSeqAutomaton
 import ostrich.cesolver.util.ParikhUtil.debugPrintln
 
 class ParikhStore(
@@ -57,7 +57,7 @@ class ParikhStore(
 
   // the intermidiate product automaton
   private val totolityAut = if (isArray) {
-    StringArrayAutomaton.makeAnyArray()
+    StringSeqAutomaton.makeAnySeq()
   } else {
     BricsAutomatonWrapper.makeAnyString()
   }

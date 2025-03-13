@@ -52,10 +52,15 @@ import ostrich.cesolver.preprocess.CEReducerFactory
 import ostrich.cesolver.util.ParikhUtil.throwWithStackTrace
 import ostrich.cesolver.preprocess.CEPredtoEqConverter
 import ostrich.cesolver.util.ParikhUtil.debugPrintln
-import ostrich.cesolver.automata.StringArrayAutomaton
+import ostrich.cesolver.automata.StringSeqAutomaton
 import ap.theories.arrays.ExtArray
 import ap.types.Sort
 import ap.parser.IFunApp
+import ostrich.cesolver.util.ParikhUtil.log
+import ostrich.cesolver.sequencetheory.CESeqTheory
+import ap.theories.Theory
+import ostrich.cesolver.sequencetheory.CESeqTheoryBuilder
+import ap.theories.sequences.SeqTheory
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -67,17 +72,13 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
 
   private val ceSolver = new CESolver(this, flags)
   private val equalityPropagator = new OstrichEqualityPropagator(this)
-  private lazy val arrayTheory = ExtArray(Seq(Sort.Integer), StringSort)
 
   lazy val ceAutDatabase = new CEAutDatabase(this, flags)
+  lazy val seqTheory = CESeqTheoryBuilder().theory
+  // val seq_nth = seqTheory.funPredMap(seqTheory.seq_nth)
+  
 
-  // array functions and predicates
-  lazy val select = arrayTheory.select
-  lazy val store = arrayTheory.store
-  val _select = functionPredicateMap(select)
-  val _store = functionPredicateMap(store)
-
-  // substring special cases
+  // substring intermidiate functions. The purpose is to construct smaller automata in special cases
   lazy val str_substr_0_lenMinus1 =
     new MonoSortedIFunction("str_substr_0_lenMinus1", List(StringSort), StringSort, true, false)
   lazy val str_substr_lenMinus1_1 =
@@ -120,9 +121,8 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
     str_substr_indexofc0Plus1_tail
   )
 
-  lazy val arrayFuncs = List(select, store)
+  override protected def extraExtraFunctions: Seq[IFunction] = specialSubstrFuncs ++ seqTheory.functions
 
-  override protected def extraExtraFunctions: Seq[IFunction] = specialSubstrFuncs ++ arrayFuncs
 
   // Set of the predicates that are fully supported at this point
   private val supportedPreds: Set[Predicate] =
@@ -183,7 +183,7 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
       })
 
   private val unsupportedPreds = predicates.toSet -- supportedPreds
-
+  
   override val dependencies = List(ModuloArithmetic, IntEnumerator)
 
   override def plugin = Some(new Plugin {
@@ -209,7 +209,7 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
       try {
         modelCache(goal.facts) { ceSolver.findStringModel(goal) } match {
           case Some(m) => equalityPropagator.handleSolution(goal, m)
-          case None => List(Plugin.AddFormula(Conjunction.TRUE))
+          case None => List()
         }
       } catch {
         case OstrichSolver.BlockingActions(actions) => actions
@@ -220,13 +220,16 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
     override def computeModel(goal: Goal): Seq[Plugin.Action] =
       if (Seqs.disjointSeq(goal.facts.predicates, predicates)) { List() }
       else {
-        val model = (modelCache(goal.facts) { ceSolver.findStringModel(goal) }).get
+        val model = (modelCache(goal.facts) {
+          log("computeModel----------------")
+          ceSolver.findStringModel(goal)
+        }).get
         debugPrintln("Model: " + model)
         implicit val order = goal.order
         import TerForConvenience._
 
         val stringAssignments = conj(
-          for ((x, Right(w)) <- model if StringArrayAutomaton.isStringResult(w))
+          for ((x, Right(w)) <- model if StringSeqAutomaton.isStringResult(w))
             yield (x === strDatabase.list2Id(w))
         )
 
@@ -234,19 +237,6 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
           for ((x, Left(len)) <- model; if x.constants subsetOf order.orderedConstants)
             yield l(x - len)
         )
-
-        val arrayAssignments = conj(
-          for ((x, Right(w)) <- model if StringArrayAutomaton.isArrayResult(w)) yield {
-            val arrayRes = StringArrayAutomaton.toArrayResult(w)
-            val resFormula = conj(
-              for ((wi, i) <- arrayRes.zipWithIndex)
-                yield _store(Seq(l(x), l(i), l(strDatabase.list2Id(wi))))
-            )
-            resFormula
-            _store(Seq(l(x), l(0), l(strDatabase.list2Id(Seq()))))
-          }
-        )
-
 
         val stringFormulas = conj(goal.facts.iterator filter { f =>
           !Seqs.disjointSeq(f.predicates, predicates)
@@ -256,7 +246,7 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
           Plugin.RemoveFacts(stringFormulas),
           Plugin.AddAxiom(
             List(stringFormulas),
-            stringAssignments & lenAssignments & arrayAssignments,
+            stringAssignments & lenAssignments,
             CEStringTheory.this
           )
         )

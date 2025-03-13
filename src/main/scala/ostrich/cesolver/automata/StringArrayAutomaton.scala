@@ -39,7 +39,7 @@ import ostrich.automata.Automaton
 import scala.collection.mutable.ArrayBuffer
 import ap.parser.IExpression.connectSimplify
 import ap.parser.IBinJunctor
-import ostrich.cesolver.automata.StringArrayAutomaton.arraySplitter
+import ostrich.cesolver.automata.StringSeqAutomaton.arraySplitter
 import ap.parser.ITerm
 import ostrich.cesolver.util.ParikhUtil.sumVec
 import ostrich.cesolver.util.ParikhUtil
@@ -47,14 +47,14 @@ import java.time.LocalDate
 import java.io.File
 import ostrich.cesolver.util.DotWriter
 
-object StringArrayAutomaton {
+object StringSeqAutomaton {
   val arraySplitter: Int = 65536 // since the alphabet is from 0 to 65535
 
-  def isArrayResult(word: Seq[Int]): Boolean = { word.contains(arraySplitter) }
+  def isSeqResult(word: Seq[Int]): Boolean = { word.contains(arraySplitter) }
 
-  def isStringResult(word: Seq[Int]): Boolean = { !isArrayResult(word) }
+  def isStringResult(word: Seq[Int]): Boolean = { !isSeqResult(word) }
 
-  def toArrayResult(word: Seq[Int]): Seq[Seq[Int]] = {
+  def toSeqResult(word: Seq[Int]): Seq[Seq[Int]] = {
     val result = new ArrayBuffer[Seq[Int]]
     var current = new ArrayBuffer[Int]
     for (c <- word) {
@@ -66,32 +66,32 @@ object StringArrayAutomaton {
     result
   }
 
-  def makeAnyArray(): StringArrayAutomaton = {
-    val aut = new StringArrayAutomaton
+  def makeAnySeq(): StringSeqAutomaton = {
+    val aut = new StringSeqAutomaton
     val initialState = aut.initialState
     aut.addTransition(initialState, (Char.MinValue, Char.MaxValue), initialState, Seq())
-    aut.addArrayElementConnect(initialState, initialState)
+    aut.addSeqElementConnect(initialState, initialState)
     aut.setAccept(initialState, true)
     aut
   }
 }
 
-class StringArrayAutomaton extends CostEnrichedAutomatonBase {
+class StringSeqAutomaton extends CostEnrichedAutomatonBase {
 
-  protected var arrayElementConnect = new MHashMap[State, MHashSet[State]]()
+  protected var seqElementConnect = new MHashMap[State, MHashSet[State]]()
   protected var arrayElementConnectReverse = new MHashMap[State, MHashSet[State]]()
 
-  def addArrayElementConnect(from: State, to: State): Unit = {
-    arrayElementConnect.getOrElseUpdate(from, new MHashSet[State]) += to
+  def addSeqElementConnect(from: State, to: State): Unit = {
+    seqElementConnect.getOrElseUpdate(from, new MHashSet[State]) += to
     arrayElementConnectReverse.getOrElseUpdate(to, new MHashSet[State]) += from
   }
 
-  def nextArrayElements(s: State): Iterable[State] = arrayElementConnect.get(s).getOrElse(Set())
+  def nextSeqElements(s: State): Iterable[State] = seqElementConnect.get(s).getOrElse(Set())
 
-  def previousArrayElements(s: State): Iterable[State] = arrayElementConnectReverse.get(s).getOrElse(Set())
+  def previousSeqElements(s: State): Iterable[State] = arrayElementConnectReverse.get(s).getOrElse(Set())
 
-  def removeDeadStates(): StringArrayAutomaton = {
-    val result = new StringArrayAutomaton
+  def removeDeadStates(): StringSeqAutomaton = {
+    val result = new StringSeqAutomaton
     val old2new = states.map(s => s -> result.newState()).toMap
     val workstack = new MStack[State]
     val visited = new MHashSet[State]
@@ -108,9 +108,9 @@ class StringArrayAutomaton extends CostEnrichedAutomatonBase {
         result.addTransition(old2new(from), l, old2new(state), v)
       }
       // array element connections
-      for (from <- previousArrayElements(state)) {
+      for (from <- previousSeqElements(state)) {
         if (!visited.contains(from)) { workstack.push(from) }
-        result.addArrayElementConnect(old2new(from), old2new(state))
+        result.addSeqElementConnect(old2new(from), old2new(state))
       }
     }
     result.initialState = old2new(initialState)
@@ -121,8 +121,8 @@ class StringArrayAutomaton extends CostEnrichedAutomatonBase {
   }
 
   def &(that: Automaton): Automaton = {
-    val thatAut = that.asInstanceOf[StringArrayAutomaton]
-    val result = new StringArrayAutomaton
+    val thatAut = that.asInstanceOf[StringSeqAutomaton]
+    val result = new StringSeqAutomaton
     val pair2state = new MHashMap[(State, State), State]
     val workstack = new MStack[(State, State)]
     pair2state += ((this.initialState, thatAut.initialState) -> result.initialState)
@@ -151,8 +151,8 @@ class StringArrayAutomaton extends CostEnrichedAutomatonBase {
         }
       }
       for (
-        to1 <- this.nextArrayElements(from1);
-        to2 <- thatAut.nextArrayElements(from2)
+        to1 <- this.nextSeqElements(from1);
+        to2 <- thatAut.nextSeqElements(from2)
       ) {
         val to = pair2state.getOrElseUpdate(
           (to1, to2), {
@@ -160,7 +160,7 @@ class StringArrayAutomaton extends CostEnrichedAutomatonBase {
             result.newState()
           }
         )
-        result.addArrayElementConnect(from, to)
+        result.addSeqElementConnect(from, to)
       }
     }
     result.regsRelation =
@@ -187,13 +187,13 @@ class StringArrayAutomaton extends CostEnrichedAutomatonBase {
   }
 
   override def outgoingTransitionsWithoutLabel(s: State): Iterable[(State, Seq[Int])] = {
-    outgoingTransitions(s).map { case (to, _, vec) => (to, vec) } ++ nextArrayElements(s)
+    outgoingTransitions(s).map { case (to, _, vec) => (to, vec) } ++ nextSeqElements(s)
       .map((_, Seq.fill(registers.length)(0)))
   }
 
   override def incomingTransitionsWithoutLabel(s: State): Iterable[(State, Seq[Int])] = {
     incomingTransitions(s).map { case (from, _, vec) => (from, vec) } ++
-      previousArrayElements(s).map((_, Seq.fill(registers.length)(0)))
+      previousSeqElements(s).map((_, Seq.fill(registers.length)(0)))
   }
 
   // get accepted word when the registers is empty
@@ -211,7 +211,7 @@ class StringArrayAutomaton extends CostEnrichedAutomatonBase {
         worklist.push((to, word :+ label._1.toInt))
         visited += to
       }
-      for (to <- nextArrayElements(state) if !visited.contains(to)) {
+      for (to <- nextSeqElements(state) if !visited.contains(to)) {
         worklist.push((to, word :+ arraySplitter))
         visited += to
       }
@@ -239,17 +239,13 @@ class StringArrayAutomaton extends CostEnrichedAutomatonBase {
         worklist.push((to, newRegsVal, word :+ label._1.toInt))
         visited += ((to, newRegsVal))
       }
-      for (to <- nextArrayElements(state) if !visited.contains((to, regsVal))) {
+      for (to <- nextSeqElements(state) if !visited.contains((to, regsVal))) {
         worklist.push((to, regsVal, word :+ arraySplitter))
         visited += ((to, regsVal))
       }
     }
     None
   }
-
-  def |(that: ostrich.automata.Automaton): ostrich.automata.Automaton = ???
-  def apply(word: Seq[Int]): Boolean = ???
-  def unary_! : Automaton = ???
 
   // check if the automaton is empty (not considering the registers)
   def isEmpty: Boolean = {
@@ -263,7 +259,7 @@ class StringArrayAutomaton extends CostEnrichedAutomatonBase {
       visited += state
       if (this.isAccept(state)) { return false }
       for ((to, _, _) <- outgoingTransitions(state) if !visited.contains(to)) { worklist += to }
-      for (to <- nextArrayElements(state) if !visited.contains(to)) { worklist += to }
+      for (to <- nextSeqElements(state) if !visited.contains(to)) { worklist += to }
     }
     true
   }
@@ -289,7 +285,7 @@ class StringArrayAutomaton extends CostEnrichedAutomatonBase {
       strbuilder.append(s"""
         ${s} -> ${t} [label = \"${left.toInt},${right.toInt}:(${vec.mkString(",")})\"]""")
     }
-    for ((s, t) <- arrayElementConnect) {
+    for ((s, t) <- seqElementConnect) {
       strbuilder.append(s"""
         ${s} -> ${t} [label = \"array\"]""")
     }
@@ -298,4 +294,11 @@ class StringArrayAutomaton extends CostEnrichedAutomatonBase {
     strbuilder.append("\n      }")
     writer.closeAfterWrite(strbuilder.toString())
   }
+
+  // non-implemented methods /////////////////////////////////
+  def |(that: ostrich.automata.Automaton): ostrich.automata.Automaton = ???
+  def apply(word: Seq[Int]): Boolean = ???
+  def unary_! : Automaton = ???
+  // non-implemented methods /////////////////////////////////
+
 }

@@ -62,14 +62,14 @@ class SplitCEPreOp(splitString: String) extends CEPreOp {
     for (s <- res.acceptingStates) { argAut.setAccept(old2new(s), true) }
     for ((s, l, t, v) <- res.transitions) { argAut.addTransition(old2new(s), l, old2new(t), v) }
     // replace the array spliter to the split string
-    for (s <- res.states; t <- res.nextSeqElements(s)) {
+    for (s <- res.states; (t, vec) <- res.nextSeqElements(s)) {
       val newStates = Seq.fill(splitString.length + 1)(argAut.newState())
       for (i <- 0 until splitString.length) {
         argAut.addTransition(
           newStates(i),
           (splitString(i), splitString(i)),
           newStates(i + 1),
-          Seq.fill(res.registers.length)(0)
+          vec
         )
       }
       argAut.addEpsilon(old2new(s), newStates(0))

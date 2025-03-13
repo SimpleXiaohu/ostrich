@@ -70,7 +70,7 @@ object StringSeqAutomaton {
     val aut = new StringSeqAutomaton
     val initialState = aut.initialState
     aut.addTransition(initialState, (Char.MinValue, Char.MaxValue), initialState, Seq())
-    aut.addSeqElementConnect(initialState, initialState)
+    aut.addSeqElementConnect(initialState, initialState, Seq())
     aut.setAccept(initialState, true)
     aut
   }
@@ -78,17 +78,20 @@ object StringSeqAutomaton {
 
 class StringSeqAutomaton extends CostEnrichedAutomatonBase {
 
-  protected var seqElementConnect = new MHashMap[State, MHashSet[State]]()
-  protected var arrayElementConnectReverse = new MHashMap[State, MHashSet[State]]()
+  protected var seqElementConnect = new MHashMap[State, MHashSet[(State, Update)]]()
+  protected var arrayElementConnectReverse = new MHashMap[State, MHashSet[(State, Update)]]()
 
-  def addSeqElementConnect(from: State, to: State): Unit = {
-    seqElementConnect.getOrElseUpdate(from, new MHashSet[State]) += to
-    arrayElementConnectReverse.getOrElseUpdate(to, new MHashSet[State]) += from
+  def addSeqElementConnect(from: State, to: State, update: Update): Unit = {
+    seqElementConnect.getOrElseUpdate(from, new MHashSet[(State, Update)]) += ((to, update))
+    arrayElementConnectReverse.getOrElseUpdate(to, new MHashSet[(State, Update)]) +=
+      ((from, update))
   }
 
-  def nextSeqElements(s: State): Iterable[State] = seqElementConnect.get(s).getOrElse(Set())
+  def nextSeqElements(s: State): Iterable[(State, Update)] = seqElementConnect.get(s)
+    .getOrElse(Set())
 
-  def previousSeqElements(s: State): Iterable[State] = arrayElementConnectReverse.get(s).getOrElse(Set())
+  def previousSeqElements(s: State): Iterable[(State, Update)] = arrayElementConnectReverse.get(s)
+    .getOrElse(Set())
 
   def removeDeadStates(): StringSeqAutomaton = {
     val result = new StringSeqAutomaton
@@ -108,9 +111,9 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
         result.addTransition(old2new(from), l, old2new(state), v)
       }
       // array element connections
-      for (from <- previousSeqElements(state)) {
+      for ((from, v) <- previousSeqElements(state)) {
         if (!visited.contains(from)) { workstack.push(from) }
-        result.addSeqElementConnect(old2new(from), old2new(state))
+        result.addSeqElementConnect(old2new(from), old2new(state), v)
       }
     }
     result.initialState = old2new(initialState)
@@ -151,8 +154,8 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
         }
       }
       for (
-        to1 <- this.nextSeqElements(from1);
-        to2 <- thatAut.nextSeqElements(from2)
+        (to1, v1) <- this.nextSeqElements(from1);
+        (to2, v2) <- thatAut.nextSeqElements(from2)
       ) {
         val to = pair2state.getOrElseUpdate(
           (to1, to2), {
@@ -160,7 +163,7 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
             result.newState()
           }
         )
-        result.addSeqElementConnect(from, to)
+        result.addSeqElementConnect(from, to, v1 ++ v2)
       }
     }
     result.regsRelation =
@@ -188,12 +191,10 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
 
   override def outgoingTransitionsWithoutLabel(s: State): Iterable[(State, Seq[Int])] = {
     outgoingTransitions(s).map { case (to, _, vec) => (to, vec) } ++ nextSeqElements(s)
-      .map((_, Seq.fill(registers.length)(0)))
   }
 
   override def incomingTransitionsWithoutLabel(s: State): Iterable[(State, Seq[Int])] = {
-    incomingTransitions(s).map { case (from, _, vec) => (from, vec) } ++
-      previousSeqElements(s).map((_, Seq.fill(registers.length)(0)))
+    incomingTransitions(s).map { case (from, _, vec) => (from, vec) } ++ previousSeqElements(s)
   }
 
   // get accepted word when the registers is empty
@@ -211,7 +212,7 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
         worklist.push((to, word :+ label._1.toInt))
         visited += to
       }
-      for (to <- nextSeqElements(state) if !visited.contains(to)) {
+      for ((to, _) <- nextSeqElements(state) if !visited.contains(to)) {
         worklist.push((to, word :+ arraySplitter))
         visited += to
       }
@@ -236,12 +237,17 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
       val sortedByVecSum = outgoingTransitions(state).toSeq.sortBy(_._3.sum).reverse
       for ((to, label, vec) <- sortedByVecSum if !visited.contains((to, regsVal))) {
         val newRegsVal = sumVec(regsVal, vec)
-        worklist.push((to, newRegsVal, word :+ label._1.toInt))
-        visited += ((to, newRegsVal))
+        if (newRegsVal.zip(regsVal).forall(r => r._1 <= r._2)) {
+          worklist.push((to, newRegsVal, word :+ label._1.toInt))
+          visited += ((to, newRegsVal))
+        }
       }
-      for (to <- nextSeqElements(state) if !visited.contains((to, regsVal))) {
-        worklist.push((to, regsVal, word :+ arraySplitter))
-        visited += ((to, regsVal))
+      for ((to, vec) <- nextSeqElements(state) if !visited.contains((to, regsVal))) {
+        val newRegsVal = sumVec(regsVal, vec)
+        if (newRegsVal.zip(regsVal).forall(r => r._1 <= r._2)) {
+          worklist.push((to, regsVal, word :+ arraySplitter))
+          visited += ((to, regsVal))
+        }
       }
     }
     None
@@ -259,7 +265,7 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
       visited += state
       if (this.isAccept(state)) { return false }
       for ((to, _, _) <- outgoingTransitions(state) if !visited.contains(to)) { worklist += to }
-      for (to <- nextSeqElements(state) if !visited.contains(to)) { worklist += to }
+      for ((to, _) <- nextSeqElements(state) if !visited.contains(to)) { worklist += to }
     }
     true
   }

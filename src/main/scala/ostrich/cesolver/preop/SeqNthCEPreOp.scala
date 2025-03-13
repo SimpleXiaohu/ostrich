@@ -71,19 +71,19 @@ class SeqNthCEPreOp(index: Int) extends CEPreOp {
       argAut.addTransition(preStates(i*2), sigmaLabel, preStates(i*2+1), emptyUpdate)
     }
     for (i <- 0 until index - 1) {
-      argAut.addSeqElementConnect(preStates(i*2+1), preStates(i*2+2))
+      argAut.addSeqElementConnect(preStates(i*2+1), preStates(i*2+2), emptyUpdate)
     }
     // the array elements after the index
     argAut.addTransition(acceptState, sigmaLabel, acceptState, emptyUpdate)
-    argAut.addSeqElementConnect(acceptState, acceptState)
+    argAut.addSeqElementConnect(acceptState, acceptState, emptyUpdate)
     // the array element at the index
     for ((s, l, t, v) <- res.transitions) {
       argAut.addTransition(old2new(s), l, old2new(t), v)
     }
     // connect the three parts
-    argAut.addSeqElementConnect(preStates(index*2-1), old2new(res.initialState))
+    argAut.addSeqElementConnect(preStates(index*2-1), old2new(res.initialState), emptyUpdate)
     for (s <- res.acceptingStates) {
-      argAut.addSeqElementConnect(old2new(s), acceptState)
+      argAut.addSeqElementConnect(old2new(s), acceptState, emptyUpdate)
     }
     argAut.addEpsilon(argAut.initialState, preStates(0))
     argAut.registers = res.registers

@@ -241,9 +241,6 @@ class Regex2CEAut(theory: OstrichStringTheory, flags: OFlags)
       tree: Map[ITerm, Seq[ITerm]],
       root: ITerm
   ): Map[ITerm, Int] = {
-    // ParikhUtil.log(s"buildTree2Max tree is ${tree.map { case (key, values) =>
-    //     countTerm2id(key) -> values.map(countTerm2id(_))
-    //   }}, root is ${countTerm2id { root }}")
     val tree2max = MHashMap[ITerm, Int]()
     val rootUpperBound = root match {
       case IFunApp(
@@ -272,11 +269,6 @@ class Regex2CEAut(theory: OstrichStringTheory, flags: OFlags)
       tree2max: Map[ITerm, Int],
       root: ITerm
   ): Seq[ITerm] = {
-    // ParikhUtil.log(
-    //   s"tree2max is ${tree2max.map { case (t, i) => countTerm2id(t) -> i }}, tree is ${tree.map {
-    //       case (key, values) => countTerm2id(key) -> values.map(countTerm2id(_))
-    //     }}, root is ${countTerm2id { root }}"
-    // )
     root match {
       case IFunApp(
             `re_loop` | `re_loop_?`,

@@ -37,7 +37,6 @@ import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ostrich.cesolver.automata.StringSeqAutomaton
 
 object SplitCEPreOp {
-
   def apply(splitString: String): SplitCEPreOp = new SplitCEPreOp(splitString)
 }
 
@@ -48,35 +47,16 @@ object SplitCEPreOp {
  */
 class SplitCEPreOp(splitString: String) extends CEPreOp {
 
-  override def toString = "splitCEPreOp"
+  override def toString = "splitCEPreOp_" + splitString
 
   def apply(
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
     val res = resultConstraint.asInstanceOf[StringSeqAutomaton]
-    val argAut = new CostEnrichedAutomaton
-    val old2new = res.states.map(s => (s, argAut.newState())).toMap
-    argAut.initialState = (old2new(res.initialState))
-
-    for (s <- res.acceptingStates) { argAut.setAccept(old2new(s), true) }
-    for ((s, l, t, v) <- res.transitions) { argAut.addTransition(old2new(s), l, old2new(t), v) }
-    // replace the array spliter to the split string
-    for (s <- res.states; (t, vec) <- res.nextSeqElements(s)) {
-      val newStates = Seq.fill(splitString.length + 1)(argAut.newState())
-      for (i <- 0 until splitString.length) {
-        argAut.addTransition(
-          newStates(i),
-          (splitString(i), splitString(i)),
-          newStates(i + 1),
-          vec
-        )
-      }
-      argAut.addEpsilon(old2new(s), newStates(0))
-      argAut.addEpsilon(newStates(splitString.length), old2new(t))
-    }
-    argAut.registers = res.registers
-    argAut.regsRelation = res.regsRelation
+    val tran = ReplaceAllCEPreOp.buildTransducer(splitString.toCharArray())
+    val internals = res.allConnectors()
+    val argAut = tran.preImage(res, internals)
     (Iterator(Seq(argAut)), Seq())
   }
 

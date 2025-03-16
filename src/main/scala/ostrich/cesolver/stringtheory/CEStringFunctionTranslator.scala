@@ -212,7 +212,7 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
 
       case FunPred(`str_split`) if (strDatabase isConcrete a(1))=> {
         val splitStr = strDatabase.term2Str(a(1)).get
-        Some((() => SplitCEPreOp(splitStr), List(a(0), a(1)), a(2)))
+        Some((() => SplitCEPreOp(splitStr), List(a(0)), a(2)))
         
       }
 

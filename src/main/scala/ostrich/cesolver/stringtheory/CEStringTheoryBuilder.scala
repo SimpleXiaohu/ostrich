@@ -40,6 +40,9 @@ import ostrich.OFlags
 import OFlags.CEABackend.{Unary, Baseline}
 import ostrich.cesolver.util.ParikhUtil
 import ap.CmdlMain
+import ap.theories.strings.{StringTheoryBuilder, StringTheory, SeqStringTheory}
+import scala.collection.mutable.ArrayBuffer
+import ostrich.automata.TransducerTranslator
 
 object  CEStringTheoryBuilder {
   val name = "OSTRICH-CEA"
@@ -48,7 +51,7 @@ object  CEStringTheoryBuilder {
 
 /** The entry class of the Ostrich string solver.
   */
-class CEStringTheoryBuilder extends OstrichStringTheoryBuilder {
+class CEStringTheoryBuilder extends StringTheoryBuilder {
   import CEStringTheoryBuilder._
 
   override val name = CEStringTheoryBuilder.name
@@ -67,7 +70,7 @@ class CEStringTheoryBuilder extends OstrichStringTheoryBuilder {
     println
   }
 
-  protected var debug = false
+  protected var eager, minimizeAuts, debug = false
   protected var backend: OFlags.CEABackend.Value = Unary
 
   override def parseParameter(str: String): Unit = str match {
@@ -93,9 +96,33 @@ class CEStringTheoryBuilder extends OstrichStringTheoryBuilder {
       super.parseParameter(str)
   }
 
+  import StringTheoryBuilder._
+  import ap.parser._
+  import IExpression._
+
+  lazy val getTransducerTheory : Option[StringTheory] =
+    Some(SeqStringTheory(OstrichStringTheory.alphabetSize))
+
+  private val transducers = new ArrayBuffer[(String, SymTransducer)]
+
+  def addTransducer(name : String, transducer : SymTransducer) : Unit = {
+    assert(!createdTheory)
+    transducers += ((name, transducer))
+  }
+
   private var createdTheory = false
 
-  override lazy val theory = {
+  lazy val symTransducers =
+    for ((name, transducer) <- transducers) yield {
+      Console.err.println("Translating transducer " + name + " ...")
+      val aut = TransducerTranslator.toBricsTransducer(
+                  transducer, OstrichStringTheory.alphabetSize,
+                  getTransducerTheory.get)
+      (name, aut)
+    }
+
+
+  lazy val theory = {
     createdTheory = true
 
     new CEStringTheory(
@@ -109,5 +136,7 @@ class CEStringTheoryBuilder extends OstrichStringTheoryBuilder {
       )
     )
   }
+
+  def setAlphabetSize(w : Int) : Unit = ()
 
 }

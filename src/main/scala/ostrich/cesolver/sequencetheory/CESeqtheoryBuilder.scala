@@ -7,7 +7,6 @@ object CESeqTheoryBuilder {
   // make the loaded theory a singleton and global one,
   // so that we can use it in other theory.
   lazy val instance = new CESeqTheory
-  def apply(): CESeqTheoryBuilder = new CESeqTheoryBuilder
 }
 
 

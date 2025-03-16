@@ -40,7 +40,6 @@ import ap.terfor.linearcombination.LinearCombination
 import ap.types.SortedPredicate
 import ap.theories.TheoryRegistry
 import ap.util.Seqs
-import ostrich.cesolver.util.ParikhUtil.log
 
 /**
  * Class to propagate equalities between string variables; this is

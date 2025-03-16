@@ -114,4 +114,8 @@ object DenghangTests extends Properties("DenghangTests") {
   property("str_to_int_sat.smt2") =
     checkFile("tests/hu-benchmarks/str_to_int_sat.smt2", "sat")
 
+  // integration tests for sequence
+  property("split_seqnth_unsat.smt2") =
+    checkFile("tests/hu-benchmarks/sequence/split_seqnth_unsat.smt2", "unsat")
+
 }

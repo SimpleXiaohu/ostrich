@@ -111,10 +111,10 @@ class ParikhExploration(
 
   private val fresh2origin = new MHashMap[ITerm, ITerm]
 
-  private val (integerTerms, strTerms, arrTerms, sortedFunApps, ignoredApps) = {
+  private val (integerTerms, strTerms, seqTerms, sortedFunApps, ignoredApps) = {
     val strTerms = MHashSet[ITerm]()
     val integerTerms = MHashSet[ITerm]()
-    val arrTerms = MHashSet[ITerm]()
+    val seqTerms = MHashSet[ITerm]()
     for ((t, _) <- initialConstraints)
       strTerms += t
     val newFunApps = funApps.map {
@@ -147,19 +147,18 @@ class ParikhExploration(
         fresh2origin += (freshIndex -> index)
         (op, Seq(str, subStr, freshStart), freshIndex)
       }
-      case (op: SplitCEPreOp, Seq(str, sep), arr) => {
-        strTerms += str
-        strTerms += sep
-        arrTerms += arr
-        (op, Seq(str, sep), arr)
+      case (op: SplitCEPreOp, Seq(splitedStr), resSeq) => {
+        strTerms += splitedStr
+        seqTerms += resSeq
+        (op, Seq(splitedStr), resSeq)
       }
-      case (op: SeqNthCEPreOp, Seq(arr, index), str) => {
+      case (op: SeqNthCEPreOp, Seq(seq, index), resStr) => {
         val freshIndex = termGen.intTerm
-        arrTerms += arr
+        seqTerms += seq
         integerTerms += freshIndex
         fresh2origin += (freshIndex -> index)
-        strTerms += str
-        (op, Seq(arr, freshIndex), str)
+        strTerms += resStr
+        (op, Seq(seq, freshIndex), resStr)
       }
       case (op, strs, resstr) => {
         strTerms ++= strs
@@ -204,7 +203,7 @@ class ParikhExploration(
       Console.err.println("WARNING: cyclic definitions found, ignoring " + ignoredApps)
     }
 
-    (integerTerms, strTerms, arrTerms, sortedApps, ignoredApps)
+    (integerTerms, strTerms, seqTerms, sortedApps, ignoredApps)
   }
 
   private val freshIntegerTermFormula = fresh2origin.map({
@@ -250,7 +249,7 @@ class ParikhExploration(
         "definitions"
     )
 
-  private val allTerms = integerTerms ++ strTerms ++ arrTerms
+  private val allTerms = integerTerms ++ strTerms ++ seqTerms
 
   private val resultTerms =
     (for ((_, t) <- sortedFunApps.iterator) yield t).toSet
@@ -270,7 +269,7 @@ class ParikhExploration(
   def findModel: Option[Map[Term, Either[IdealInt, Seq[Int]]]] = {
     for (t <- strTerms ++ integerTerms)
       constraintStores.put(t, newStore(t))
-    for (t <- arrTerms)
+    for (t <- seqTerms)
       constraintStores.put(t, newStoreArray(t))
 
     for ((t, aut) <- allInitialConstraints) {
@@ -328,7 +327,7 @@ class ParikhExploration(
             )
         }
 
-      ParikhUtil.log(resValue + " = " + op + "(" + argsValues.mkString(", ") + ")")
+      ParikhUtil.log("Generate model : " + resValue + " = " + op + "(" + argsValues.mkString(", ") + ")")
       def throwResultCutException: Unit = {
         import ap.terfor.TerForConvenience._
         implicit val o = lProver.order
@@ -383,7 +382,7 @@ class ParikhExploration(
           }
 
         backendSolver.setIntegerTerm(integerTerms.toSet)
-        for (t <- leafTerms; if (strTerms++arrTerms contains t)) {
+        for (t <- leafTerms; if (strTerms++seqTerms contains t)) {
           backendSolver.addConstraint(t, constraintStores(t).getCompleteContents)
         }
         val res = backendSolver.measureTimeSolve
@@ -551,7 +550,7 @@ class ParikhExploration(
       (argsSeq, t) <- sortedFunApps;
       if {
         if (!(coveredTerms contains t)) {
-          val totalizedAut = if (arrTerms contains t) {
+          val totalizedAut = if (seqTerms contains t) {
             StringSeqAutomaton.makeAnySeq()
           } else {
             BricsAutomatonWrapper.makeAnyString

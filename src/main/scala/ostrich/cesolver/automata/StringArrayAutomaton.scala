@@ -54,6 +54,7 @@ object StringSeqAutomaton {
 
   def isStringResult(word: Seq[Int]): Boolean = { !isSeqResult(word) }
 
+  // get the sequence results from the word with arraySplitter
   def toSeqResult(word: Seq[Int]): Seq[Seq[Int]] = {
     val result = new ArrayBuffer[Seq[Int]]
     var current = new ArrayBuffer[Int]
@@ -63,6 +64,7 @@ object StringSeqAutomaton {
         current = new ArrayBuffer[Int]
       } else { current += c }
     }
+    result += current
     result
   }
 
@@ -79,21 +81,21 @@ object StringSeqAutomaton {
 class StringSeqAutomaton extends CostEnrichedAutomatonBase {
 
   protected var seqElementConnect = new MHashMap[State, MHashSet[(State, Update)]]()
-  protected var arrayElementConnectReverse = new MHashMap[State, MHashSet[(State, Update)]]()
+  protected var seqElementConnectReverse = new MHashMap[State, MHashSet[(State, Update)]]()
 
   def addSeqElementConnect(from: State, to: State, update: Update): Unit = {
     seqElementConnect.getOrElseUpdate(from, new MHashSet[(State, Update)]) += ((to, update))
-    arrayElementConnectReverse.getOrElseUpdate(to, new MHashSet[(State, Update)]) +=
+    seqElementConnectReverse.getOrElseUpdate(to, new MHashSet[(State, Update)]) +=
       ((from, update))
   }
 
   def nextSeqElements(s: State): Iterable[(State, Update)] = seqElementConnect.get(s)
     .getOrElse(Set())
 
-  def previousSeqElements(s: State): Iterable[(State, Update)] = arrayElementConnectReverse.get(s)
+  def previousSeqElements(s: State): Iterable[(State, Update)] = seqElementConnectReverse.get(s)
     .getOrElse(Set())
 
-  def removeDeadStates(): StringSeqAutomaton = {
+  private def removeDeadStates(): StringSeqAutomaton = {
     val result = new StringSeqAutomaton
     val old2new = states.map(s => s -> result.newState()).toMap
     val workstack = new MStack[State]
@@ -121,6 +123,13 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
     result.registers = registers
     result.regsRelation = regsRelation
     result
+  }
+
+  def allConnectors(): MHashSet[(State, State, Update)] = {
+    val res = new MHashSet[(State, State, Update)]()
+    for (s <- states; out <- seqElementConnect.get(s); (outt, outv) <- out)
+      res += ((s, outt, outv))
+    res
   }
 
   def &(that: Automaton): Automaton = {
@@ -169,8 +178,6 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
     result.regsRelation =
       connectSimplify(Seq(this.regsRelation, thatAut.regsRelation), IBinJunctor.And)
     result.registers = this.registers ++ thatAut.registers
-    result.toDot("and")
-    result.removeDeadStates().toDot("and-after-remove")
     result.removeDeadStates()
   }
 
@@ -232,8 +239,7 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
     while (worklist.nonEmpty) {
       ap.util.Timeout.check
       val (state, regsVal, word) = worklist.pop()
-      // always add the arraySplitter in the end
-      if (isAccept(state) && regsVal == registersValues) return Some(word :+ arraySplitter)
+      if (isAccept(state) && regsVal == registersValues) return Some(word)
       val sortedByVecSum = outgoingTransitions(state).toSeq.sortBy(_._3.sum).reverse
       for ((to, label, vec) <- sortedByVecSum if !visited.contains((to, regsVal))) {
         val newRegsVal = sumVec(regsVal, vec)

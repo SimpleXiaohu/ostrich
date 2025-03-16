@@ -109,4 +109,6 @@ class CESeqTheory extends SeqTheory {
     (res, signature)
   }
 
+  override def isSoundForSat(theories: Seq[Theory], config: Theory.SatSoundnessConfig.Value): Boolean = true
+
 }

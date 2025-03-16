@@ -56,7 +56,6 @@ import ostrich.cesolver.automata.StringSeqAutomaton
 import ap.theories.arrays.ExtArray
 import ap.types.Sort
 import ap.parser.IFunApp
-import ostrich.cesolver.util.ParikhUtil.log
 import ostrich.cesolver.sequencetheory.CESeqTheory
 import ap.theories.Theory
 import ostrich.cesolver.sequencetheory.CESeqTheoryBuilder
@@ -74,7 +73,7 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
   private val equalityPropagator = new OstrichEqualityPropagator(this)
 
   lazy val ceAutDatabase = new CEAutDatabase(this, flags)
-  lazy val seqTheory = CESeqTheoryBuilder().theory
+  lazy val seqTheory = CESeqTheoryBuilder.instance
   // val seq_nth = seqTheory.funPredMap(seqTheory.seq_nth)
   
 
@@ -143,8 +142,6 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
           str_extract,
           str_to_int,
           int_to_str,
-          str_split,
-          str_join,
           re_none,
           re_eps,
           re_all,
@@ -182,6 +179,7 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
         case Right(p) => p
       })
 
+  debugPrintln("_____" + supportedPreds)
   private val unsupportedPreds = predicates.toSet -- supportedPreds
   
   override val dependencies = List(ModuloArithmetic, IntEnumerator)
@@ -209,7 +207,7 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
       try {
         modelCache(goal.facts) { ceSolver.findStringModel(goal) } match {
           case Some(m) => equalityPropagator.handleSolution(goal, m)
-          case None => List()
+          case None => List(Plugin.AddFormula(Conjunction.TRUE))
         }
       } catch {
         case OstrichSolver.BlockingActions(actions) => actions
@@ -221,7 +219,6 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
       if (Seqs.disjointSeq(goal.facts.predicates, predicates)) { List() }
       else {
         val model = (modelCache(goal.facts) {
-          log("computeModel----------------")
           ceSolver.findStringModel(goal)
         }).get
         debugPrintln("Model: " + model)
@@ -238,9 +235,15 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
             yield l(x - len)
         )
 
+        // TODO: Generate model of sequence term
+        val seqAssignments = conj(
+          for ((x, Right(w)) <- model if StringSeqAutomaton.isSeqResult(w))
+            yield Conjunction.TRUE
+        )
+
         val stringFormulas = conj(goal.facts.iterator filter { f =>
           !Seqs.disjointSeq(f.predicates, predicates)
-        })
+        })        
 
         List(
           Plugin.RemoveFacts(stringFormulas),

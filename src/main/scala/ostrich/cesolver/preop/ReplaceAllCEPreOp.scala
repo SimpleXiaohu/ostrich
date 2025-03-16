@@ -179,7 +179,7 @@ object ReplaceAllCEPreOp {
     ceTran
   }
 
-  private def buildTransducer(w: Seq[Char]) : CETransducer = {
+  def buildTransducer(w: Seq[Char]) : CETransducer = {
     val ceTran = new CETransducer
 
     val initState = ceTran.initialState

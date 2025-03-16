@@ -51,7 +51,7 @@ object CEMain {
    * specified on the command line, so it is possible to provide more specific
    * string solver options on the command line.
    */
-  val options = List("-stringSolver=ostrich.cesolver.stringtheory.CEStringTheory", "-seqSolver=ostrich.cesolver.sequencetheory.CESeqTheory", "-logo")
+  val options = List("-stringSolver=ostrich.cesolver.stringtheory.CEStringTheory", "-seqSolver=ostrich.cesolver.sequencetheory.CESeqTheory","-logo")
 
   ParallelFileProver.addPortfolio(
     "strings", arguments => {

@@ -45,11 +45,8 @@ import ostrich.automata.Transducer._
 import ostrich.cesolver.util.ParikhUtil.{log, sumVec}
 
 object CETransducer {
-  type State = CostEnrichedAutomaton#State
-  type TLabel = CostEnrichedAutomaton#TLabel
-
-  private val strAtRightTransducer =
-    new MHashMap[Int, CETransducer]
+  type State = CostEnrichedAutomatonBase#State
+  type TLabel = CostEnrichedAutomatonBase#TLabel
 
   /**
    * Transducer that eats every input and produces no output.
@@ -68,64 +65,15 @@ object CETransducer {
 
     ceTran
   }
-
-
-   /**
-   * Construct a transducer that extracts the <code>n</code>th-last character
-   * of a string.
-   */
-  def getStrAtRightTransducer(n : Int) : CETransducer =
-    synchronized {
-      strAtRightTransducer.getOrElseUpdate(
-        n, 
-        if (n < 0) {
-          SilentTransducer
-        } else {
-          
-
-          val ceTran = new CETransducer
-
-          val initState      = ceTran.initialState
-          val repeatState    = ceTran.newState()
-          val tailStates     = for (i <- 0 to n)    yield ceTran.newState()
-          val shortStrStates = for (i <- 1 until n) yield ceTran.newState()
-
-          for (Seq(s1, s2) <- (tailStates sliding 2) ++
-                              ((List(initState) ++ shortStrStates) sliding 2) ++
-                              Iterator(List(repeatState, repeatState),
-                                       List(initState, repeatState)))
-            ceTran.addTransition(s1,
-                                  ceTran.LabelOps.sigmaLabel,
-                                  OutputOp("", NOP, ""),
-                                  s2)
-
-          ceTran.addTransition(initState,
-                                ceTran.LabelOps.sigmaLabel,
-                                OutputOp("", Plus(0), ""),
-                                tailStates.head)
-          ceTran.addTransition(repeatState,
-                                ceTran.LabelOps.sigmaLabel,
-                                OutputOp("", Plus(0), ""),
-                                tailStates.head)
-
-          ceTran.setAccept(initState, true)
-          ceTran.setAccept(tailStates.last, true)
-
-          for (s <- shortStrStates)
-            ceTran.setAccept(s, true)
-
-          ceTran
-        })
-    }
-
 }
+
 
 class CETransducer {
   import CETransducer._
   
 
   type TTransition = (TLabel, OutputOp, State)
-  type TETransition = (OutputOp, State)
+  type TETransition = (OutputOp, State) // epsilon transition
 
   private var stateidx = 0
   private var _initialState: State = newState()
@@ -137,6 +85,7 @@ class CETransducer {
   private def operation(t: TTransition) = t._2
   private def dest(t: TTransition): State = t._3
   private def operation(t: TETransition) = t._1
+
   private def dest(t: TETransition): State = t._2
   private def dest(t: Either[TTransition, TETransition]): State = t match {
     case Left(lblTran) => dest(lblTran)
@@ -147,13 +96,13 @@ class CETransducer {
 
   def isAccept(s: State) = _acceptingStates.contains(s)
 
-  def preImage(aut : CostEnrichedAutomaton) : CostEnrichedAutomaton =
+  def preImage(aut : CostEnrichedAutomatonBase) : CostEnrichedAutomatonBase =
     preImage(aut, Iterable())
 
   def preImage(
-      aut: CostEnrichedAutomaton,
+      aut: CostEnrichedAutomatonBase,
       internals: Iterable[(State, State, Seq[Int])] = Iterable()
-  ): CostEnrichedAutomaton =
+  ): CostEnrichedAutomatonBase =
     /* Exploration.measure("transducer pre-op") */ {
       log("Computing pre-image of transducer")
       val ceAut = new CostEnrichedAutomaton

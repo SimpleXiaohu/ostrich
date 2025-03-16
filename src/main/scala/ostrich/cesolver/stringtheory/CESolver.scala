@@ -208,7 +208,6 @@ class CESolver(theory: CEStringTheory, flags: OFlags) {
         funApps += ((SeqNthCEPreOp(index), List(a(0), a(1)), a(2)))
       }
 
-
       case p if (theory.predicates contains p) =>
         stringFunctionTranslator(a) match {
           case Some((op, args, res)) => funApps += ((op(), args, res))
@@ -443,10 +442,10 @@ class CESolver(theory: CEStringTheory, flags: OFlags) {
         }
       }
 
-      // if (result.isDefined)
-      //   Console.err.println("   ... sat")
-      // else
-      //   Console.err.println("   ... unsat")
+      if (result.isDefined)
+        Console.err.println("   ... sat")
+      else
+        Console.err.println("   ... unsat")
 
       result
     }

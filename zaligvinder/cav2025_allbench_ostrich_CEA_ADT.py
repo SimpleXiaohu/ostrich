@@ -2,6 +2,7 @@
 
 from runners.multi import TheRunner as testrunner
 import tools.oldOstrich_CEA_ADT
+import tools.ostrich_CEA_ADT
 import utils,storage, summarygenerators
 import voting.majority as voting
 import startwebserver
@@ -26,15 +27,14 @@ tracks = (
 
 solvers = {}
 for s in [
-    tools.oldOstrich,
-    tools.ostrichHeuristics,
+    tools.ostrich_CEA_ADT,
 ]:
     s.addRunner(solvers)
 
 timeout = 60
 ploc = utils.JSONProgramConfig()
 
-store = storage.SQLiteDB("cav2025-smtallbench-old-new-ostrich")
+store = storage.SQLiteDB("cav2025-smtallbench-ostrich-cea-adt")
 summaries = [summarygenerators.terminalResult, store.postTrackUpdate]
 # verifiers = ["Cvc5"]
 verifiers = [""]

@@ -37,6 +37,11 @@ import ostrich.cesolver.preop.CEPreOp
 
 trait SeqNthCEPreOpBase extends CEPreOp {
   override def toString = "seqNthCEPreOp"
+  def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
+    val sequence = StringSeqAutomaton.toSeqResult(arguments.head)
+    val index      = arguments(1)(0)
+    Some(sequence(index))
+  }
 }
 
 object SeqNthCEPreOp {
@@ -95,13 +100,6 @@ class SeqNthCEPreOpConcrete(index: Int) extends SeqNthCEPreOpBase {
     argAut.regsRelation = res.regsRelation
     (Iterator(Seq(argAut)), Seq())
   }
-
-  /** Evaluate the described function; return <code>None</code> if the function is not defined for the given arguments.
-    */
-  def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
-    val splitArray = StringSeqAutomaton.toSeqResult(arguments.head)
-    Some(splitArray(index))
-  }
 }
 
 // Pre-operator for seq.at, in the case where the index is a variable.
@@ -134,11 +132,5 @@ class SeqNthCEPreOp(index: ITerm) extends SeqNthCEPreOpBase {
     argAut.regsRelation = res.regsRelation & newRegister === index
     argAut.registers = res.registers :+ newRegister
     (Iterator(Seq(argAut)), Seq())
-  }
-
-  def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
-    val splitArray = StringSeqAutomaton.toSeqResult(arguments.head)
-    val index      = arguments(1)(0)
-    Some(splitArray(index))
   }
 }

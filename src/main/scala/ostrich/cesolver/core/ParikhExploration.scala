@@ -71,6 +71,7 @@ import ap.parser.IExpression
 import ostrich.cesolver.preop.sequence.SplitCEPreOp
 import ostrich.cesolver.automata.StringSeqAutomaton
 import ostrich.cesolver.preop.sequence.SeqNthCEPreOpBase
+import ostrich.cesolver.preop.sequence.SeqLenCEPreOpBase
 
 object ParikhExploration {
 
@@ -82,8 +83,10 @@ object ParikhExploration {
       extends Exception
 
   private def isStringResultOp(op: PreOp): Boolean = op match {
-    case _: LengthCEPreOp  => false
-    case _: IndexOfCEPreOp => false
+    case _: LengthCEPreOp  | 
+         _: IndexOfCEPreOp | 
+         _: SeqLenCEPreOpBase => false
+
     case _                 => true
   }
 }
@@ -159,6 +162,13 @@ class ParikhExploration(
         fresh2origin += (freshIndex -> index)
         strTerms += resStr
         (op, Seq(seq, freshIndex), resStr)
+      }
+      case (op: SeqLenCEPreOpBase, Seq(seq), resLen) => {
+        val freshLen = termGen.intTerm
+        fresh2origin += (freshLen -> resLen)
+        seqTerms += seq
+        integerTerms += freshLen
+        (op, Seq(seq), freshLen)
       }
       case (op, strs, resstr) => {
         strTerms ++= strs

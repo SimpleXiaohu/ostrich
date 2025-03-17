@@ -78,6 +78,7 @@ object StringSeqAutomaton {
   }
 }
 
+// Automaton for string sequences. The accepted word "a#a#b#b" means the sequence [a, a, b, b] where # is the arraySplitter
 class StringSeqAutomaton extends CostEnrichedAutomatonBase {
 
   protected var seqElementConnect = new MHashMap[State, MHashSet[(State, Update)]]()

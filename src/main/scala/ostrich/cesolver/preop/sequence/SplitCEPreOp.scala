@@ -25,7 +25,7 @@
  * WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package ostrich.cesolver.preop
+package ostrich.cesolver.preop.sequence
 
 import ostrich.automata.Automaton
 import ostrich.cesolver.automata.CostEnrichedAutomaton
@@ -35,6 +35,8 @@ import ap.parser.IExpression
 import ap.basetypes.IdealInt
 import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ostrich.cesolver.automata.StringSeqAutomaton
+import ostrich.cesolver.preop.CEPreOp
+import ostrich.cesolver.preop.ReplaceAllCEPreOp
 
 object SplitCEPreOp {
   def apply(splitString: String): SplitCEPreOp = new SplitCEPreOp(splitString)

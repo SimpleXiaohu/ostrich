@@ -68,9 +68,9 @@ import ap.parser.IIntLit
 import ap.parser.IConstant
 import ap.parser.SimplifyingConstantSubstVisitor
 import ap.parser.IExpression
-import ostrich.cesolver.preop.SplitCEPreOp
+import ostrich.cesolver.preop.sequence.SplitCEPreOp
 import ostrich.cesolver.automata.StringSeqAutomaton
-import ostrich.cesolver.preop.SeqNthCEPreOpBase
+import ostrich.cesolver.preop.sequence.SeqNthCEPreOpBase
 
 object ParikhExploration {
 

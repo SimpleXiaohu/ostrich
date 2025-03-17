@@ -47,6 +47,8 @@ import ap.parser.Internal2InputAbsy
 import ostrich.OstrichStringFunctionTranslator
 import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ap.terfor.linearcombination.LinearCombination
+import ostrich.cesolver.preop.sequence.SplitCEPreOp
+import ostrich.cesolver.preop.sequence.SeqNthCEPreOp
 
 /** Class for mapping string constraints to string functions.
   */

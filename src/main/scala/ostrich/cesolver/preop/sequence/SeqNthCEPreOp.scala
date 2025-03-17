@@ -21,7 +21,7 @@
   * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   */
 
-package ostrich.cesolver.preop
+package ostrich.cesolver.preop.sequence
 
 import ostrich.automata.Automaton
 import ostrich.cesolver.automata.CostEnrichedAutomaton
@@ -33,6 +33,7 @@ import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ostrich.cesolver.automata.StringSeqAutomaton
 import ap.terfor.Term
 import ap.terfor.linearcombination.LinearCombination
+import ostrich.cesolver.preop.CEPreOp
 
 trait SeqNthCEPreOpBase extends CEPreOp {
   override def toString = "seqNthCEPreOp"
@@ -59,18 +60,18 @@ class SeqNthCEPreOpConcrete(index: Int) extends SeqNthCEPreOpBase {
     val argAut      = new StringSeqAutomaton
     val old2new     = res.states.map(s => (s, argAut.newState())).toMap
     // the sequence elements before the index
-    val preStates = Seq.fill(index * 2)(argAut.newState())
+    val preStates = Seq.fill(index)(argAut.newState())
     for (i <- 0 until index)
       argAut.addTransition(
-        preStates(i * 2),
+        preStates(i),
         sigmaLabel,
-        preStates(i * 2 + 1),
+        preStates(i),
         emptyUpdate
       )
     for (i <- 0 until index - 1)
       argAut.addSeqElementConnect(
-        preStates(i * 2 + 1),
-        preStates(i * 2 + 2),
+        preStates(i),
+        preStates(i + 1),
         emptyUpdate
       )
     // the sequence element at the index
@@ -85,7 +86,7 @@ class SeqNthCEPreOpConcrete(index: Int) extends SeqNthCEPreOpBase {
     }
     // connect the three parts
     argAut.addSeqElementConnect(
-      preStates(index * 2 - 1),
+      preStates(index - 1),
       old2new(res.initialState),
       emptyUpdate
     )
@@ -113,9 +114,9 @@ class SeqNthCEPreOp(index: ITerm) extends SeqNthCEPreOpBase {
     val sigmaLabel  = (Char.MinValue, Char.MaxValue)
     val argAut      = new StringSeqAutomaton
     val newRegister = TermGenerator().registerTerm
-    val old2new = res.states.map(s => (s, argAut.newState())).toMap
+    val old2new     = res.states.map(s => (s, argAut.newState())).toMap
     val updateIndex = Seq.fill(res.registers.length)(0) :+ 1
-    val emptyUpdate = Seq.fill(res.registers.length+1)(0)
+    val emptyUpdate = Seq.fill(res.registers.length + 1)(0)
     // the sequence elements before the index
     argAut.addTransition(argAut.initialState, sigmaLabel, argAut.initialState, emptyUpdate)
     argAut.addSeqElementConnect(argAut.initialState, argAut.initialState, updateIndex)
@@ -137,7 +138,7 @@ class SeqNthCEPreOp(index: ITerm) extends SeqNthCEPreOpBase {
 
   def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
     val splitArray = StringSeqAutomaton.toSeqResult(arguments.head)
-    val index = arguments(1)(0)
+    val index      = arguments(1)(0)
     Some(splitArray(index))
   }
 }

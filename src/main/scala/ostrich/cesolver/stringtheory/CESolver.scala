@@ -52,7 +52,7 @@ import ostrich.cesolver.util.ParikhUtil
 import ap.parser.ITerm
 import ap.theories.arrays.ExtArray
 import ap.types.Sort
-import ostrich.cesolver.preop.SeqNthCEPreOp
+import ostrich.cesolver.preop.sequence.SeqNthCEPreOp
 
 class CESolver(theory: CEStringTheory, flags: OFlags) {
 

@@ -50,6 +50,7 @@ import ap.terfor.linearcombination.LinearCombination
 import ostrich.cesolver.preop.sequence.SplitCEPreOp
 import ostrich.cesolver.preop.sequence.SeqNthCEPreOp
 import ostrich.cesolver.preop.sequence.SeqLenCEPreOp
+import ostrich.cesolver.preop.sequence.SeqAtCEPreOp
 
 /** Class for mapping string constraints to string functions.
   */
@@ -78,6 +79,10 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
     a.pred match {
 
       // Sequences -----------------------------------------------------------)
+      case FunPred(`seq_at`) => {
+        val index = Internal2InputAbsy(a(1))
+        Some((() => SeqAtCEPreOp(index), List(a(0), a(1)), a(2)))
+      }
       case FunPred(`seq_len`) => {
         val len = Internal2InputAbsy(a(1))
         Some((() => SeqLenCEPreOp(len), Seq(a(0)), a(1)))

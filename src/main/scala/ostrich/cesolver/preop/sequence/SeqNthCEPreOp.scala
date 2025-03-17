@@ -34,6 +34,7 @@ import ostrich.cesolver.automata.StringSeqAutomaton
 import ap.terfor.Term
 import ap.terfor.linearcombination.LinearCombination
 import ostrich.cesolver.preop.CEPreOp
+import ostrich.cesolver.automata.CostEnrichedAutomatonBase
 
 trait SeqNthCEPreOpBase extends CEPreOp {
   override def toString = "seqNthCEPreOp"
@@ -53,13 +54,13 @@ object SeqNthCEPreOp {
   }
 }
 
-// Pre-operator for seq.at, in the case where the index is a constant.
+// Pre-operator for seq.nth, in the case where the index is a constant.
 class SeqNthCEPreOpConcrete(index: Int) extends SeqNthCEPreOpBase {
   def apply(
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val res         = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
+    val res         = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
     val sigmaLabel  = (Char.MinValue, Char.MaxValue)
     val emptyUpdate = Seq.fill(res.registers.length)(0)
     val argAut      = new StringSeqAutomaton
@@ -95,14 +96,14 @@ class SeqNthCEPreOpConcrete(index: Int) extends SeqNthCEPreOpBase {
       old2new(res.initialState),
       emptyUpdate
     )
-    argAut.addEpsilon(argAut.initialState, preStates(0))
+    argAut.initialState = preStates(0)
     argAut.registers = res.registers
     argAut.regsRelation = res.regsRelation
     (Iterator(Seq(argAut)), Seq())
   }
 }
 
-// Pre-operator for seq.at, in the case where the index is a variable.
+// Pre-operator for seq.nth, in the case where the index is a variable.
 class SeqNthCEPreOp(index: ITerm) extends SeqNthCEPreOpBase {
   def apply(
       argumentConstraints: Seq[Seq[Automaton]],

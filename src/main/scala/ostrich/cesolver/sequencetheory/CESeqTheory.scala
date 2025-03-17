@@ -19,6 +19,7 @@ import ap.parser.CollectingVisitor
 import ap.parser.IFunApp
 import ap.parser.IFormula
 import ostrich.cesolver.util.ParikhUtil.debugPrintln
+import ap.theories.TheoryRegistry
 
 
 // Sequence of Strings

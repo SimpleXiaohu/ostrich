@@ -117,7 +117,6 @@ class ParikhStore(
     val consideredAuts = new ArrayBuffer[CostEnrichedAutomatonBase]
     if (productAut.isEmpty) {
       // inconsistent, generate the minimal conflicted set
-      debugPrintln("product get emptyyyyyyyy automaton")
       var tmpAut: Automaton =
         totolityAut
       for (aut2 <- aut +: constraints) {
@@ -125,7 +124,6 @@ class ParikhStore(
         consideredAuts += aut2
         if (tmpAut.isEmpty) {
           // found the minimal conflicted set
-          debugPrintln("find the unsat automata")
           return Some(consideredAuts.toSeq)
         }
       }

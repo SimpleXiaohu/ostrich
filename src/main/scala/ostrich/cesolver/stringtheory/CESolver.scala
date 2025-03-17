@@ -94,8 +94,6 @@ class CESolver(theory: CEStringTheory, flags: OFlags) {
     strDatabase
   }
 
-  import theory.seqTheory.seq_nth
-
   val rexOps: Set[IFunction] = Set(
     re_none,
     re_all,
@@ -201,12 +199,6 @@ class CESolver(theory: CEStringTheory, flags: OFlags) {
         funApps += ((ConcatCEPreOp, List(a(0), rightVar), a(1)))
       }
       case FunPred(f) if rexOps contains f => // nothing
-      
-      // TODO: seq_nth
-      case FunPred(`seq_nth`) => {
-        val LinearCombination.Constant(IdealInt(index)) = a(1)
-        funApps += ((SeqNthCEPreOp(index), List(a(0), a(1)), a(2)))
-      }
 
       case p if (theory.predicates contains p) =>
         stringFunctionTranslator(a) match {

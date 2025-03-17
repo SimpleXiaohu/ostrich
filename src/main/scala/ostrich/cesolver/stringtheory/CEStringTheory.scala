@@ -128,6 +128,8 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
     Set(str_in_re, str_in_re_id, str_prefixof, str_suffixof) ++
       (for (
         f <- Set(
+          str_split,
+          str_join,
           str_empty,
           str_cons,
           str_at,
@@ -179,7 +181,6 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
         case Right(p) => p
       })
 
-  debugPrintln("_____" + supportedPreds)
   private val unsupportedPreds = predicates.toSet -- supportedPreds
   
   override val dependencies = List(ModuloArithmetic, IntEnumerator)

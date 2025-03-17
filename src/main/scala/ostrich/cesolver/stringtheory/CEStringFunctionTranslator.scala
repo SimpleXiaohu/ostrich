@@ -46,12 +46,21 @@ import ostrich.cesolver.automata.CostEnrichedAutomaton
 import ap.parser.Internal2InputAbsy
 import ostrich.OstrichStringFunctionTranslator
 import ostrich.cesolver.util.ParikhUtil.debugPrintln
+import ap.terfor.linearcombination.LinearCombination
 
 /** Class for mapping string constraints to string functions.
   */
 class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
     extends OstrichStringFunctionTranslator(theory, facts) {
   import theory._
+  // sequence theory functions
+  import theory.seqTheory.{
+    seq_nth,
+    seq_++,
+    seq_at,
+    seq_len,
+    seq_extract
+  }
 
   private val regexExtractor = theory.RegexExtractor(facts.predConj)
 
@@ -65,6 +74,19 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
   override def apply(a: Atom): Option[(() => PreOp, Seq[Term], Term)] =
     a.pred match {
 
+      // Sequences -----------------------------------------------------------)
+      case FunPred(`seq_nth`) => {
+        val index = Internal2InputAbsy(a(1))
+        Some((() => SeqNthCEPreOp(index), List(a(0), a(1)), a(2)))
+      }
+
+      case FunPred(`str_split`) if (strDatabase isConcrete a(1))=> {
+        val splitStr = strDatabase.term2Str(a(1)).get
+        Some((() => SplitCEPreOp(splitStr), List(a(0)), a(2)))
+        
+      }
+
+      // Strings -------------------------------------------------------------
       case FunPred(`str_len`) =>
         Some((() => LengthCEPreOp(Internal2InputAbsy(a(1))), Seq(a(0)), a(1)))
 
@@ -207,14 +229,6 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
           }
           (op, List(a(0)), a(3))
         }
-
-      // TODO: add str_split and str_join
-
-      case FunPred(`str_split`) if (strDatabase isConcrete a(1))=> {
-        val splitStr = strDatabase.term2Str(a(1)).get
-        Some((() => SplitCEPreOp(splitStr), List(a(0)), a(2)))
-        
-      }
 
       case FunPred(`str_trim`) => {
         val op = () => {

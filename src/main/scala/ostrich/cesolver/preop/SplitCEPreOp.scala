@@ -47,7 +47,7 @@ object SplitCEPreOp {
  */
 class SplitCEPreOp(splitString: String) extends CEPreOp {
 
-  override def toString = "splitCEPreOp_" + splitString
+  override def toString = "splitCEPreOp_" + '"' + splitString + '"'
 
   def apply(
       argumentConstraints: Seq[Seq[Automaton]],

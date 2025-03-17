@@ -70,7 +70,7 @@ import ap.parser.SimplifyingConstantSubstVisitor
 import ap.parser.IExpression
 import ostrich.cesolver.preop.SplitCEPreOp
 import ostrich.cesolver.automata.StringSeqAutomaton
-import _root_.ostrich.cesolver.preop.SeqNthCEPreOp
+import ostrich.cesolver.preop.SeqNthCEPreOpBase
 
 object ParikhExploration {
 
@@ -152,7 +152,7 @@ class ParikhExploration(
         seqTerms += resSeq
         (op, Seq(splitedStr), resSeq)
       }
-      case (op: SeqNthCEPreOp, Seq(seq, index), resStr) => {
+      case (op: SeqNthCEPreOpBase, Seq(seq, index), resStr) => {
         val freshIndex = termGen.intTerm
         seqTerms += seq
         integerTerms += freshIndex

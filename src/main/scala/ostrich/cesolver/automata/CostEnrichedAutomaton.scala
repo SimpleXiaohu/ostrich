@@ -35,7 +35,6 @@ import scala.collection.mutable.{
   ArrayStack => MStack
 }
 import ostrich.cesolver.util.{ParikhUtil, TermGenerator, ConstSubstVisitor}
-import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ostrich.automata.Automaton
 import dk.brics.automaton.BasicOperations
 import java.time.LocalDate

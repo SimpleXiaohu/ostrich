@@ -6,11 +6,13 @@ import ostrich.cesolver.automata.StringSeqAutomaton
 import ap.parser.ITerm
 import ap.parser.IExpression
 import ap.basetypes.IdealInt
-import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ostrich.cesolver.util.TermGenerator
 
 trait SeqLenCEPreOpBase extends CEPreOp {
   override def toString = "seqLenCEPreOp"
+
+  /** Evaluate the described function; return <code>None</code> if the function is not defined for the given arguments.
+    */
   def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
     val sequence = StringSeqAutomaton.toSeqResult(arguments.head)
     val len      = sequence.length
@@ -26,7 +28,9 @@ object SeqLenCEPreOp {
   }
 }
 
-// Pre-operator for seq.len, in the case where the length is a constant.
+/**
+  * Pre-operator for seq.len, in the case where the length is a constant.
+  */
 class SeqLenCEPreOpConcrete(len: Int) extends SeqLenCEPreOpBase {
   def apply(
       argumentConstraints: Seq[Seq[Automaton]],
@@ -56,7 +60,9 @@ class SeqLenCEPreOpConcrete(len: Int) extends SeqLenCEPreOpBase {
   }
 }
 
-// Pre-operator for seq.len, in the case where the length is a variable.
+/**
+  * Pre-operator for seq.len, in the case where the length is a variable.
+  */
 class SeqLenCEPreOp(len: ITerm) extends SeqLenCEPreOpBase {
   def apply(
       argumentConstraints: Seq[Seq[Automaton]],

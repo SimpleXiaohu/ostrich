@@ -29,7 +29,6 @@ import ap.parser.ITerm
 import ostrich.cesolver.util.TermGenerator
 import ap.parser.IExpression
 import ap.basetypes.IdealInt
-import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ostrich.cesolver.automata.StringSeqAutomaton
 import ostrich.cesolver.preop.CEPreOp
 import ostrich.cesolver.preop.ReplaceAllCEPreOp
@@ -40,8 +39,6 @@ object SplitCEPreOp {
 }
 
 /** Pre-operator for split constraint.
-  * @param splitString
-  *   the split string
   */
 class SplitCEPreOp(splitString: String) extends CEPreOp {
 
@@ -66,6 +63,7 @@ class SplitCEPreOp(splitString: String) extends CEPreOp {
     val argStr = arguments.head.map(_.toChar).mkString
     val resSeq = splitLikeJS(argStr, splitString)
     val resSeqInt = resSeq.map(_.map(_.toInt))
-    Some(resSeqInt.flatMap(seq => seq :+ StringSeqAutomaton.arraySplitter).dropRight(1))
+    // always add the arraySplitter in the end
+    Some(resSeqInt.flatMap(seq => seq :+ StringSeqAutomaton.arraySplitter))
   }
 }

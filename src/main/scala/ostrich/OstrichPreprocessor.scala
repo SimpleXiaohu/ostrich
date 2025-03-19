@@ -38,6 +38,7 @@ import ap.theories.strings.StringTheory
 
 import scala.collection.mutable.ArrayBuffer
 
+
 /**
  * Pre-processor for reducing some operators to more basic ones.
  */

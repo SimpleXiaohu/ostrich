@@ -132,7 +132,7 @@ class CESolver(theory: CEStringTheory, flags: OFlags) {
     ParikhUtil.log("CESolver.findStringModel")
     ParikhUtil.log("  goal.arithConj is: " + goal.facts.arithConj)
     ParikhUtil.log("  goal.predConj is: " + goal.facts.predConj)
-
+    
     val atoms = goal.facts.predConj
     val order = goal.order
 
@@ -207,9 +207,9 @@ class CESolver(theory: CEStringTheory, flags: OFlags) {
           // throw new Exception("Cannot handle literal " + a)
         }
       case _ =>
-        ParikhUtil.debugPrintln(a.pred)
       // nothing
     }
+
 
     ////////////////////////////////////////////////////////////////////////////
     // Collect negative literals
@@ -345,7 +345,7 @@ class CESolver(theory: CEStringTheory, flags: OFlags) {
           val underApproxRes = new ParikhExploration(
             inputFuns.toSeq,
             inputUnderCEFAs.toSeq,
-            strDatabase,
+            theory,
             flags,
             lProver,
             Internal2InputAbsy(goal.facts.arithConj)
@@ -364,7 +364,7 @@ class CESolver(theory: CEStringTheory, flags: OFlags) {
           val overApproxRes = new ParikhExploration(
             inputFuns.toSeq,
             inputOverCEFAs.toSeq,
-            strDatabase,
+            theory,
             flags,
             lProver,
             Internal2InputAbsy(goal.facts.arithConj)
@@ -381,7 +381,7 @@ class CESolver(theory: CEStringTheory, flags: OFlags) {
           val decidableExp = new ParikhExploration(
             inputFuns.toSeq,
             inputCEFAs.toSeq,
-            strDatabase,
+            theory,
             flags,
             lProver,
             Internal2InputAbsy(goal.facts.arithConj)

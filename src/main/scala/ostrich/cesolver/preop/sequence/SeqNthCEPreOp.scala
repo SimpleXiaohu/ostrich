@@ -29,7 +29,6 @@ import ap.parser.ITerm
 import ostrich.cesolver.util.TermGenerator
 import ap.parser.IExpression
 import ap.basetypes.IdealInt
-import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ostrich.cesolver.automata.StringSeqAutomaton
 import ap.terfor.Term
 import ap.terfor.linearcombination.LinearCombination
@@ -38,10 +37,14 @@ import ostrich.cesolver.automata.CostEnrichedAutomatonBase
 
 trait SeqNthCEPreOpBase extends CEPreOp {
   override def toString = "seqNthCEPreOp"
+
+  /** Evaluate the described function; return <code>None</code> if the function is not defined for the given arguments.
+    */
   def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
     val sequence = StringSeqAutomaton.toSeqResult(arguments.head)
     val index      = arguments(1)(0)
-    Some(sequence(index))
+    // always add the arraySplitter in the end
+    Some(sequence(index) :+ StringSeqAutomaton.arraySplitter)
   }
 }
 
@@ -54,7 +57,9 @@ object SeqNthCEPreOp {
   }
 }
 
-// Pre-operator for seq.nth, in the case where the index is a constant.
+/**
+  * Pre-operator for seq.nth, in the case where the index is a constant.
+  */
 class SeqNthCEPreOpConcrete(index: Int) extends SeqNthCEPreOpBase {
   def apply(
       argumentConstraints: Seq[Seq[Automaton]],
@@ -103,13 +108,15 @@ class SeqNthCEPreOpConcrete(index: Int) extends SeqNthCEPreOpBase {
   }
 }
 
-// Pre-operator for seq.nth, in the case where the index is a variable.
+/**
+  * Pre-operator for seq.nth, in the case where the index is a variable.
+  */
 class SeqNthCEPreOp(index: ITerm) extends SeqNthCEPreOpBase {
   def apply(
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val res         = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
+    val res         = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
     val sigmaLabel  = (Char.MinValue, Char.MaxValue)
     val argAut      = new StringSeqAutomaton
     val newRegister = TermGenerator().registerTerm

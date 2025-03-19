@@ -60,6 +60,9 @@ import ostrich.cesolver.sequencetheory.CESeqTheory
 import ap.theories.Theory
 import ostrich.cesolver.sequencetheory.CESeqTheoryBuilder
 import ap.theories.sequences.SeqTheory
+import ostrich.cesolver.sequencetheory.ConcreteSeqDatabase
+import ostrich.OstrichStringEncoder
+import ostrich.cesolver.util.ParikhUtil.log
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -74,8 +77,8 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
 
   lazy val ceAutDatabase = new CEAutDatabase(this, flags)
   lazy val seqTheory = CESeqTheoryBuilder.instance
-  // val seq_nth = seqTheory.funPredMap(seqTheory.seq_nth)
-  
+  seqTheory.SeqSort.setStringTheory(this)
+  lazy val seqDatabase = new ConcreteSeqDatabase(this)
 
   // substring intermidiate functions. The purpose is to construct smaller automata in special cases
   lazy val str_substr_0_lenMinus1 =
@@ -222,13 +225,15 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
         val model = (modelCache(goal.facts) {
           ceSolver.findStringModel(goal)
         }).get
-        debugPrintln("Model: " + model)
+        log("Model: " + model)
         implicit val order = goal.order
         import TerForConvenience._
 
         val stringAssignments = conj(
           for ((x, Right(w)) <- model if StringSeqAutomaton.isStringResult(w))
-            yield (x === strDatabase.list2Id(w))
+            yield {
+              x === strDatabase.list2Id(w)
+            }
         )
 
         val lenAssignments = eqZ(
@@ -239,7 +244,10 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
         // TODO: Generate model of sequence term
         val seqAssignments = conj(
           for ((x, Right(w)) <- model if StringSeqAutomaton.isSeqResult(w))
-            yield Conjunction.TRUE
+            yield {
+              val sequence = StringSeqAutomaton.toSeqResult(w)
+              Conjunction.TRUE
+            }
         )
 
         val stringFormulas = conj(goal.facts.iterator filter { f =>
@@ -259,7 +267,9 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
 
   override def iPreprocess(f: IFormula, signature: Signature): (IFormula, Signature) = {
     val visitor1 = new CEPreprocessor(this)
-    (visitor1(f), signature)
+    val visitor2 = new OstrichStringEncoder(this)
+    // the order of visitors will influence the result !
+    (visitor2(visitor1((f))), signature)
   }
 
   override def preprocess(f: Conjunction, order: TermOrder): Conjunction = {
@@ -269,6 +279,5 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
     preprocessor.preprocess(f, order)
   }
 
-  // TODO: ADD Reducer Plugin
   override val reducerPlugin = new CEReducerFactory(this)
 }

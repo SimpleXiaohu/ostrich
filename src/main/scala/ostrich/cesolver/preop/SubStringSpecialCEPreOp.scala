@@ -36,7 +36,6 @@ import ostrich.cesolver.automata.CostEnrichedAutomaton
 import ostrich.cesolver.automata.CEBasicOperations
 import ostrich.cesolver.automata.BricsAutomatonWrapper
 import ostrich.automata.BricsTLabelOps
-import ostrich.cesolver.util.ParikhUtil.debugPrintln
 
 object SubStrPreImageUtil {
   // An Automaton that accepts all strings not containing c
@@ -75,7 +74,6 @@ class SubStr_0_lenMinus1 extends CEPreOp {
     else
       Seq(nonEpsResPre)
 
-    debugPrintln("preImage.regsRelation: " + nonEpsResPre.regsRelation)
     nonEpsResPre.toDot("preImage_of" + res.hashCode())
 
     (Iterator(Seq(nonEpsResPre)), Seq())

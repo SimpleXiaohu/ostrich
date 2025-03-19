@@ -41,7 +41,6 @@ import ostrich.OFlags
 import ap.parser.IFormula
 import ostrich.automata.Automaton
 import ostrich.cesolver.automata.StringSeqAutomaton
-import ostrich.cesolver.util.ParikhUtil.debugPrintln
 
 class ParikhStore(
     t: ITerm,

@@ -1,52 +1,33 @@
-/**
- * This file is part of Ostrich, an SMT solver for strings.
- * Copyright (c) 2023 Denghang Hu, Matthew Hague, Philipp Ruemmer. All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- * 
- * * Redistributions of source code must retain the above copyright notice, this
- *   list of conditions and the following disclaimer.
- * 
- * * Redistributions in binary form must reproduce the above copyright notice,
- *   this list of conditions and the following disclaimer in the documentation
- *   and/or other materials provided with the distribution.
- * 
- * * Neither the name of the authors nor the names of their
- *   contributors may be used to endorse or promote products derived from
- *   this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+/** This file is part of Ostrich, an SMT solver for strings. Copyright (c) 2023 Denghang Hu, Matthew Hague, Philipp
+  * Ruemmer. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
+  * following conditions are met:
+  *
+  * * Redistributions of source code must retain the above copyright notice, this list of conditions and the following
+  * disclaimer.
+  *
+  * * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
+  * following disclaimer in the documentation and/or other materials provided with the distribution.
+  *
+  * * Neither the name of the authors nor the names of their contributors may be used to endorse or promote products
+  * derived from this software without specific prior written permission.
+  *
+  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  */
 package ostrich.cesolver.preprocess
 
 import ostrich.automata.{AutDatabase, BricsAutomaton}
 import ap.basetypes.IdealInt
 import ap.parser.{IFunApp, IIntLit, IExpression}
-import ap.terfor.{
-  ComputationLogger,
-  Formula,
-  TerForConvenience,
-  Term,
-  TermOrder
-}
-import ap.terfor.conjunctions.{
-  Conjunction,
-  NegatedConjunctions,
-  ReduceWithConjunction,
-  ReducerPlugin
-}
+import ap.terfor.{ComputationLogger, Formula, TerForConvenience, Term, TermOrder}
+import ap.terfor.conjunctions.{Conjunction, NegatedConjunctions, ReduceWithConjunction, ReducerPlugin}
 import ap.terfor.arithconj.ArithConj
 import ap.terfor.preds.{Atom, PredConj}
 import ap.util.PeekIterator
@@ -54,13 +35,12 @@ import AutDatabase.{ComplementedAut, NamedAutomaton, PositiveAut}
 
 import scala.collection.mutable.ArrayBuffer
 
-import ostrich.cesolver.stringtheory.{
-  CEStringTheory,
-  CEStringFunctionTranslator
-}
+import ostrich.cesolver.stringtheory.{CEStringTheory, CEStringFunctionTranslator}
 import ostrich.OstrichReducer
 import ostrich.OstrichReducerFactory
 import ostrich.cesolver.convenience.CostEnrichedConvenience.automaton2CostEnriched
+import ostrich.cesolver.util.ParikhUtil.debugPrintln
+import ap.terfor.linearcombination.LinearCombination
 
 class CEReducerFactory(theory: CEStringTheory)
     extends OstrichReducerFactory(theory) {
@@ -76,70 +56,39 @@ class CEReducerFactory(theory: CEStringTheory)
 
 }
 
-/** Reducer for string constraints. This class is responsible for simplifying
-  * string formulas during proof construction.
+/** Reducer for string constraints. This class is responsible for simplifying string formulas during proof construction.
   */
 class CEReducer(
     theory: CEStringTheory,
     funTranslator: CEStringFunctionTranslator,
     languageConstraints: List[Map[Term, List[NamedAutomaton]]],
     override val factory: CEReducerFactory,
-    order : TermOrder
-) extends OstrichReducer(theory, funTranslator, languageConstraints, factory,order) {
+    order: TermOrder
+) extends OstrichReducer(theory, funTranslator, languageConstraints, factory, order) {
 
   import ostrich.OstrichReducer._
 
-  import theory.{
-    _str_empty,
-    _str_cons,
-    _str_++,
-    _str_char_count,
-    str_empty,
-    str_cons,
-    str_in_re_id,
-    str_prefixof,
-    str_suffixof,
-    str_contains,
-    str_replace,
-    str_replaceall,
-    re_++,
-    re_*,
-    re_+,
-    str_to_re,
-    re_all,
-    re_comp,
-    re_charrange,
-    strDatabase,
-    ceAutDatabase,
-    FunPred,
-    string2Term,
-    int2Char
-  }
+  import theory.{_str_empty, _str_cons, _str_++, _str_char_count, str_empty, str_cons, str_in_re_id, str_prefixof, str_suffixof, str_contains, str_replace, str_replaceall, re_++, re_*, re_+, str_to_re, re_all, re_comp, re_charrange, strDatabase, ceAutDatabase, FunPred, string2Term, int2Char}
   import factory.{_str_len, _int_to_str, _str_to_int}
 
-  override def addAssumptions(arithConj : ArithConj,
-                     mode : ReducerPlugin.ReductionMode.Value) = this
+  override def addAssumptions(arithConj: ArithConj, mode: ReducerPlugin.ReductionMode.Value) = this
 
-  override def addAssumptions(predConj : PredConj,
-                     mode : ReducerPlugin.ReductionMode.Value) = {
+  override def addAssumptions(predConj: PredConj, mode: ReducerPlugin.ReductionMode.Value) = {
     val newLangs = extractLanguageConstraints(predConj, theory)
     if (newLangs.isEmpty)
       this
     else
-      new CEReducer(theory, funTranslator,
-                         newLangs :: languageConstraints,
-                         factory, order)
-                     }
+      new CEReducer(theory, funTranslator, newLangs :: languageConstraints, factory, order)
+  }
 
   override def reduce(
       predConj: PredConj,
       reducer: ReduceWithConjunction,
       logger: ComputationLogger,
       mode: ReducerPlugin.ReductionMode.Value
-  ): ReducerPlugin.ReductionResult = {
+  ): ReducerPlugin.ReductionResult =
     reduce1(predConj, reducer, logger, mode) orElse
       reduce2(predConj, reducer, logger, mode)
-  }
 
   /** Reduction based on contextual knowledge.
     */
@@ -151,29 +100,31 @@ class CEReducer(
   ): ReducerPlugin.ReductionResult = {
     implicit val order = predConj.order
     import TerForConvenience._
-    import strDatabase.{
-      isConcrete,
-      hasValue,
-      term2List,
-      term2ListGet,
-      list2Id,
-      str2Id,
-      term2Str
-    }
+    import strDatabase.{isConcrete => isConcreteStr, hasValue, term2List, term2ListGet, list2Id, str2Id, term2Str}
 
     def getLanguages(t: Term): Iterator[NamedAutomaton] =
       for (
-        c <- languageConstraints.iterator;
-        l <- (c get t).iterator;
+        c   <- languageConstraints.iterator;
+        l   <- (c get t).iterator;
         aut <- l.iterator
       )
         yield aut
+
+    import theory.seqTheory.{seq_empty, seq_cons, seq_unit}
+    import theory.seqDatabase
+
+    val _seq_empty = theory.functionPredicateMap(seq_empty)
+    val _seq_cons  = theory.functionPredicateMap(seq_cons)
+    val _seq_unit  = theory.functionPredicateMap(seq_unit)
 
     ReducerPlugin.rewritePreds(
       predConj,
       (List(
         _str_empty,
         _str_cons,
+        _seq_empty,
+        _seq_cons,
+        _seq_unit,
         str_in_re_id,
         _str_len,
         _str_char_count,
@@ -190,11 +141,23 @@ class CEReducer(
       logger
     ) { a =>
       a.pred match {
+        // MAYBE WRONG HERE. We assume that seq_cons is only used to construct concrete sequences
+        case `_seq_empty` =>
+          a.last === seqDatabase.iTerm2Id(IFunApp(seq_empty, List()))
+        case `_seq_cons` =>
+          a.last === seqDatabase.iTerm2Id(IFunApp(seq_cons, List(IIntLit(a(0).constant), IIntLit(a(1).constant))))
+        case `_seq_unit` => a(0) match {
+          case LinearCombination.Constant(IdealInt(i)) =>
+             a.last === seqDatabase.iTerm2Id(IFunApp(seq_unit, List(strDatabase.id2ITerm(i))))
+          case _ => a
+        }
+          a.last === seqDatabase.iTerm2Id(IFunApp(seq_unit, List(strDatabase.id2ITerm(a(0).constant.intValue))))
+
         case `_str_empty` =>
           a.last === strDatabase.iTerm2Id(IFunApp(str_empty, List()))
 
         case `_str_cons` =>
-          if (a(0).isConstant && isConcrete(a(1))) {
+          if (a(0).isConstant && isConcreteStr(a(1))) {
             a.last ===
               strDatabase.iTerm2Id(
                 IFunApp(
@@ -211,18 +174,18 @@ class CEReducer(
         case `_str_++` if hasValue(a(1), List()) =>
           a(0) === a(2)
 
-        case `str_in_re_id` => {
+        case `str_in_re_id` =>
           val autId = regexAtomToId(a)
-          if (isConcrete(a(0))) {
+          if (isConcreteStr(a(0))) {
             val Some(str) = term2List(a(0))
             val Some(aut) = ceAutDatabase.id2Automaton(autId)
             if (aut(str)) Conjunction.TRUE else Conjunction.FALSE
           } else {
-            val aut = PositiveAut(autId)
+            val aut            = PositiveAut(autId)
             val knownLanguages = getLanguages(a(0))
 
             var res: Formula = a
-            var reduced = false
+            var reduced      = false
             while (!reduced && knownLanguages.hasNext) {
               val knownAut = knownLanguages.next
               if (ceAutDatabase.emptyIntersection(aut, knownAut)) {
@@ -236,10 +199,9 @@ class CEReducer(
 
             res
           }
-        }
 
         case `_str_len` =>
-          if (isConcrete(a(0))) {
+          if (isConcreteStr(a(0))) {
             a.last === term2ListGet(a(0)).size
           } else if (a.last.isConstant && a.last.constant.isZero) {
             a(0) === list2Id(List())
@@ -248,7 +210,7 @@ class CEReducer(
           }
 
         case `_str_char_count` =>
-          if (a(0).isConstant && isConcrete(a(1))) {
+          if (a(0).isConstant && isConcreteStr(a(1))) {
             val char = a(0).constant.intValueSafe
             a.last === term2ListGet(a(1)).count(_ == char)
           } else {
@@ -258,16 +220,15 @@ class CEReducer(
         case `_int_to_str` =>
           if (a(0).isConstant) {
             val const = a(0).constant
-            val str = if (const.signum < 0) "" else a(0).constant.toString
-            val id = str2Id(str)
+            val str   = if (const.signum < 0) "" else a(0).constant.toString
+            val id    = str2Id(str)
             a.last === id
-          } else if (isConcrete(a(1))) {
+          } else if (isConcreteStr(a(1))) {
             val str = term2Str(a(1)).get
             str match {
-              case IntNoLeadingZeroesRegex() => {
+              case IntNoLeadingZeroesRegex() =>
                 val strVal = IdealInt(str)
                 a(0) === strVal
-              }
               case "" =>
                 a(0) < 0
               case _ =>
@@ -278,7 +239,7 @@ class CEReducer(
           }
 
         case `_str_to_int` =>
-          if (isConcrete(a(0))) {
+          if (isConcreteStr(a(0))) {
             val str = term2Str(a(0)).get
             val strVal = str match {
               case IntRegex() => IdealInt(str)
@@ -287,7 +248,7 @@ class CEReducer(
             a.last === strVal
           } else if (a(1).isConstant) {
             a(1).constant match {
-              case IdealInt.MINUS_ONE => {
+              case IdealInt.MINUS_ONE =>
                 // argument must be something different from a decimal number
                 val autId = {
                   import IExpression._
@@ -296,16 +257,14 @@ class CEReducer(
                   ceAutDatabase.regex2Id(re)
                 }
                 str_in_re_id(List(a(0), l(autId)))
-              }
-              case const if const.signum >= 0 => {
+              case const if const.signum >= 0 =>
                 val autId = {
                   import IExpression._
                   val num = const.toString
-                  val re = re_++(re_*(str_to_re("0")), str_to_re(num))
+                  val re  = re_++(re_*(str_to_re("0")), str_to_re(num))
                   ceAutDatabase.regex2Id(re)
                 }
                 str_in_re_id(List(a(0), l(autId)))
-              }
               case _ =>
                 Conjunction.FALSE
             }
@@ -321,7 +280,7 @@ class CEReducer(
           Conjunction.TRUE
 
         case `str_suffixof` =>
-          if (isConcrete(a(0))) {
+          if (isConcreteStr(a(0))) {
             assert(a(0).isConstant)
             val asRE = IFunApp(
               re_++,
@@ -332,7 +291,7 @@ class CEReducer(
             )
             val autId = ceAutDatabase.regex2Id(asRE)
             str_in_re_id(List(a(1), l(autId)))
-          } else if (isConcrete(a(1))) {
+          } else if (isConcreteStr(a(1))) {
 
             val str = term2Str(a(1)).get
             val autId =
@@ -343,20 +302,15 @@ class CEReducer(
           }
 
         case `str_contains` =>
-          if (isConcrete(a(1))) {
+          if (isConcreteStr(a(1))) {
             assert(a(1).isConstant)
-            val asRE =
-              IFunApp(
-                re_++,
-                List(
-                  IFunApp(re_all, List()),
-                  IFunApp(str_to_re, List(a(1).constant)),
-                  IFunApp(re_all, List())
-                )
-              )
+            val asRE = {
+              import IExpression._
+              re_++(re_all(), re_++(str_to_re(a(1).constant), re_all()))
+            }
             val autId = ceAutDatabase.regex2Id(asRE)
             str_in_re_id(List(a(0), l(autId)))
-          } else if (isConcrete(a(0))) {
+          } else if (isConcreteStr(a(0))) {
 
             val str = term2Str(a(0)).get
             val autId =
@@ -367,7 +321,7 @@ class CEReducer(
           }
 
         case `str_prefixof` =>
-          if (isConcrete(a(0))) {
+          if (isConcreteStr(a(0))) {
             assert(a(0).isConstant)
             val asRE = IFunApp(
               re_++,
@@ -378,7 +332,7 @@ class CEReducer(
             )
             val autId = ceAutDatabase.regex2Id(asRE)
             str_in_re_id(List(a(1), l(autId)))
-          } else if (isConcrete(a(1))) {
+          } else if (isConcreteStr(a(1))) {
             val str = term2Str(a(1)).get
             val autId =
               ceAutDatabase.automaton2Id(automaton2CostEnriched(BricsAutomaton.prefixAutomaton(str)))
@@ -394,7 +348,7 @@ class CEReducer(
           a(2) === a(3)
 
         case FunPred(`str_replace` | `str_replaceall`)
-            if isConcrete(a(0)) && isConcrete(a(1)) &&
+            if isConcreteStr(a(0)) && isConcreteStr(a(1)) &&
               !(term2ListGet(a(0)) containsSlice term2ListGet(a(1))) =>
           a(0) === a(3)
 
@@ -404,18 +358,18 @@ class CEReducer(
         case FunPred(`str_replaceall`) if hasValue(a(1), List()) =>
           a(0) === a(3)
 
-        case p => {
-          try {
+        case p =>
+          try
             assert(
               funTranslator.translatablePredicates contains p,
               ("Unhandled case in reducer: " + p)
             )
-          } catch {
+          catch {
             case t: ap.util.Timeout => throw t
-            case t: Throwable       => { t.printStackTrace; throw t }
+            case t: Throwable       => t.printStackTrace; throw t
           }
           funTranslator(a) match {
-            case Some((op, args, res)) if (args forall isConcrete) => {
+            case Some((op, args, res)) if (args forall isConcreteStr) =>
               val argStrs = args map term2ListGet
               op().eval(argStrs) match {
                 case Some(resStr) =>
@@ -423,11 +377,9 @@ class CEReducer(
                 case None =>
                   a
               }
-            }
             case _ =>
               a
           }
-        }
       }
     }
   }
@@ -441,7 +393,7 @@ class CEReducer(
       mode: ReducerPlugin.ReductionMode.Value
   ): ReducerPlugin.ReductionResult =
     mode match {
-      case ReducerPlugin.ReductionMode.Contextual => {
+      case ReducerPlugin.ReductionMode.Contextual =>
         val posLits = predConj positiveLitsWithPred str_in_re_id
         val negLits = predConj negativeLitsWithPred str_in_re_id
 
@@ -572,7 +524,6 @@ class CEReducer(
         } else {
           ReducerPlugin.UnchangedResult
         }
-      }
       case _ =>
         ReducerPlugin.UnchangedResult
     }

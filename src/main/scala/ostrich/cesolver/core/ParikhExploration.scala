@@ -72,6 +72,8 @@ import ostrich.cesolver.preop.sequence.SplitCEPreOp
 import ostrich.cesolver.automata.StringSeqAutomaton
 import ostrich.cesolver.preop.sequence.SeqNthCEPreOpBase
 import ostrich.cesolver.preop.sequence.SeqLenCEPreOpBase
+import ostrich.cesolver.stringtheory.CEStringTheory
+import ostrich.cesolver.preop.sequence.SeqAtCEPreOp
 
 object ParikhExploration {
 
@@ -94,14 +96,14 @@ object ParikhExploration {
 class ParikhExploration(
     funApps: Seq[(PreOp, Seq[ITerm], ITerm)],
     initialConstraints: Seq[(ITerm, CostEnrichedAutomatonBase)],
-    strDatabase: StrDatabase,
+    theory: CEStringTheory,
     flags: OFlags,
     lProver: SimpleAPI,
     inputFormula: IFormula
 ) {
 
   import ParikhExploration._
-
+  import theory.{strDatabase, seqDatabase}
   private val termGen = TermGenerator()
 
   private var maybeUnknown = false
@@ -162,6 +164,14 @@ class ParikhExploration(
         fresh2origin += (freshIndex -> index)
         strTerms += resStr
         (op, Seq(seq, freshIndex), resStr)
+      }
+      case (op: SeqAtCEPreOp, Seq(seq, index), resSeq) => {
+        val freshIndex = termGen.intTerm
+        integerTerms += freshIndex
+        fresh2origin += (freshIndex -> index)
+        seqTerms += seq
+        seqTerms += resSeq
+        (op, Seq(seq, freshIndex), resSeq)
       }
       case (op: SeqLenCEPreOpBase, Seq(seq), resLen) => {
         val freshLen = termGen.intTerm
@@ -397,7 +407,7 @@ class ParikhExploration(
         }
         val res = backendSolver.measureTimeSolve
 
-        ParikhUtil.debugPrintln("Result from CEA backend: " + res)
+        ParikhUtil.log("Result from CEA backend: " + res)
 
         res.getStatus match {
           case ProverStatus.Sat => {
@@ -553,6 +563,11 @@ class ParikhExploration(
       for (w <- strDatabase.term2List(InputAbsy2Internal(t, TermOrder.EMPTY))) {
         val str: String = w.view.map(i => i.toChar).mkString("")
         additionalConstraints += ((t, BricsAutomatonWrapper fromString str))
+        coveredTerms += t
+      }
+    for (t <- seqTerms)
+      for (seq <- seqDatabase.term2Seq(InputAbsy2Internal(t, TermOrder.EMPTY))) {
+        additionalConstraints += ((t, StringSeqAutomaton fromSeq seq))
         coveredTerms += t
       }
 

@@ -50,6 +50,7 @@ import ostrich.cesolver.preop.sequence.SplitCEPreOp
 import ostrich.cesolver.preop.sequence.SeqNthCEPreOp
 import ostrich.cesolver.preop.sequence.SeqLenCEPreOp
 import ostrich.cesolver.preop.sequence.SeqAtCEPreOp
+import ostrich.cesolver.preop.sequence.JoinCEPreOp
 
 /** Class for mapping string constraints to string functions.
   */
@@ -77,7 +78,12 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
   override def apply(a: Atom): Option[(() => PreOp, Seq[Term], Term)] =
     a.pred match {
 
-      // Sequences -----------------------------------------------------------)
+      // Sequences -----------------------------------------------------------
+      // NOTE: not consider edge cases yet, for example, seq_at(s, i) where i > seq_len(s)
+      case FunPred(`str_join`) if strDatabase isConcrete a(1) => {
+        val connector = strDatabase.term2Str(a(1)).get
+        Some((() => JoinCEPreOp(connector), List(a(0)), a(2)))
+      }
       case FunPred(`seq_at`) => {
         val index = Internal2InputAbsy(a(1))
         Some((() => SeqAtCEPreOp(index), List(a(0), a(1)), a(2)))

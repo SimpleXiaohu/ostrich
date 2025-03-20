@@ -22,6 +22,8 @@ class CESeqTheoryBuilder extends SeqTheoryBuilder {
 
   val theory = CESeqTheoryBuilder.instance
 
+  // We only consider the case of sequences of strings, so the sort is fixed
+  // to the string sort.
   def setElementSort(elementSort: Sort): Unit = ()
   
 

@@ -42,7 +42,7 @@ trait SeqNthCEPreOpBase extends CEPreOp {
     */
   def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
     val sequence = StringSeqAutomaton.toSeqResult(arguments.head)
-    val index      = arguments(1)(0)
+    val index    = arguments(1)(0)
     // always add the arraySplitter in the end
     Some(sequence(index) :+ StringSeqAutomaton.arraySplitter)
   }
@@ -57,8 +57,7 @@ object SeqNthCEPreOp {
   }
 }
 
-/**
-  * Pre-operator for seq.nth, in the case where the index is a constant.
+/** Pre-operator for seq.nth, in the case where the index is a constant.
   */
 class SeqNthCEPreOpConcrete(index: Int) extends SeqNthCEPreOpBase {
   def apply(
@@ -96,20 +95,24 @@ class SeqNthCEPreOpConcrete(index: Int) extends SeqNthCEPreOpBase {
       argAut.addSeqElementConnect(acceptState, acceptState, emptyUpdate)
     }
     // connect the three parts
-    argAut.addSeqElementConnect(
-      preStates(index - 1),
-      old2new(res.initialState),
-      emptyUpdate
-    )
-    argAut.initialState = preStates(0)
+    if (index == 0) {
+      argAut.initialState = old2new(res.initialState)
+    } else {
+
+      argAut.addSeqElementConnect(
+        preStates(index - 1),
+        old2new(res.initialState),
+        emptyUpdate
+      )
+      argAut.initialState = preStates(0)
+    }
     argAut.registers = res.registers
     argAut.regsRelation = res.regsRelation
     (Iterator(Seq(argAut)), Seq())
   }
 }
 
-/**
-  * Pre-operator for seq.nth, in the case where the index is a variable.
+/** Pre-operator for seq.nth, in the case where the index is a variable.
   */
 class SeqNthCEPreOp(index: ITerm) extends SeqNthCEPreOpBase {
   def apply(

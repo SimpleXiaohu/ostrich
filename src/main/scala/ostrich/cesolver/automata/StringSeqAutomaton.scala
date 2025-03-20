@@ -91,14 +91,10 @@ object StringSeqAutomaton {
   }
 }
 
-/**
-  * Automaton for string sequences. 
-  * The accepted words of sequences are always end with the arraySplitter.
-  * For example, # is the empty sequence [], while a# is ["a"]. 
-  * But in automaton we do not construct the final # explicitly, So we need
-  * to add the arraySplitter in getAcceptedWord.
-  */ 
-
+/** Automaton for string sequences. The accepted words of sequences are always end with the arraySplitter. For example,
+  * # is the empty sequence [], while a# is ["a"]. But in automaton we do not construct the final # explicitly, So we
+  * need to add the arraySplitter in getAcceptedWord.
+  */
 
 class StringSeqAutomaton extends CostEnrichedAutomatonBase {
 
@@ -246,6 +242,8 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
   }
 
   override def getAcceptedWordByRegisters(registersModel: Map[ITerm, Int]): Option[Seq[Int]] = {
+    ParikhUtil.debugPrintln("registersModel: " + registersModel)
+    this.toDot("getAcceptedWordByRegisters")
     if (registers.isEmpty) return getAcceptedWord
     val registersValues = registers.map(registersModel(_))
     // the state is (s, registersValues)
@@ -258,20 +256,28 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
       ap.util.Timeout.check
       val (state, regsVal, word) = worklist.pop()
       // always add the arraySplitter in the end
-      if (isAccept(state) && regsVal == registersValues) return Some(word:+ arraySplitter)
+      if (isAccept(state) && regsVal == registersValues) return Some(word :+ arraySplitter)
       val sortedByVecSum = outgoingTransitions(state).toSeq.sortBy(_._3.sum).reverse
-      for ((to, label, vec) <- sortedByVecSum if !visited.contains((to, regsVal))) {
-        val newRegsVal = sumVec(regsVal, vec)
-        if (newRegsVal.zip(regsVal).forall(r => r._1 <= r._2)) {
-          worklist.push((to, newRegsVal, word :+ label._1.toInt))
-          visited += ((to, newRegsVal))
+      for ((to, label, vec) <- sortedByVecSum) {
+        val nextRegsVal = sumVec(regsVal, vec)
+        if (
+          !visited.contains((to, nextRegsVal)) &&
+          nextRegsVal.zip(registersValues).forall(r => r._1 <= r._2)
+        ) {
+          worklist.push((to, nextRegsVal, word :+ label._1.toInt))
+          visited += ((to, nextRegsVal))
         }
       }
-      for ((to, vec) <- nextSeqElements(state) if !visited.contains((to, regsVal))) {
-        val newRegsVal = sumVec(regsVal, vec)
-        if (newRegsVal.zip(regsVal).forall(r => r._1 <= r._2)) {
-          worklist.push((to, regsVal, word :+ arraySplitter))
-          visited += ((to, regsVal))
+      for ((to, vec) <- nextSeqElements(state)) {
+        val nextRegsVal = sumVec(regsVal, vec)
+        ParikhUtil.debugPrintln("nextRegsVal: " + nextRegsVal)
+        ParikhUtil.debugPrintln("(state, to, vec): " + (state, to, vec))
+        if (
+          !visited.contains((to, nextRegsVal)) &&
+          nextRegsVal.zip(registersValues).forall(r => r._1 <= r._2)
+        ) {
+          worklist.push((to, nextRegsVal, word :+ arraySplitter))
+          visited += ((to, nextRegsVal))
         }
       }
     }
@@ -315,9 +321,12 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
     for ((s, (left, right), t, vec) <- transitions.toSeq.sortBy(_._1))
       strbuilder.append(s"""
         ${s} -> ${t} [label = \"${left.toInt},${right.toInt}:(${vec.mkString(",")})\"]""")
-    for ((s, t) <- seqElementConnect)
+    for (
+      (s, targetsWithVec) <- seqElementConnect;
+      (t, vec)            <- targetsWithVec
+    )
       strbuilder.append(s"""
-        ${s} -> ${t} [label = \"array\"]""")
+        ${s} -> ${t} [label = \"array:(${vec.mkString(",")})\"]""")
     strbuilder.append("\n")
     strbuilder.append(s"""        \"${registers.mkString(", ")}\" [shape=plaintext]""")
     strbuilder.append("\n      }")

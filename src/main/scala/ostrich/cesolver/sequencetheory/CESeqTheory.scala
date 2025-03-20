@@ -23,7 +23,10 @@ import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ap.theories.TheoryRegistry
 import ostrich.cesolver.stringtheory.CEStringTheory
 
-// Sequence of Strings
+/**
+  * The theory to handle the sequence of strings.
+  *
+  */
 class CESeqTheory extends SeqTheory {
 
   val ElementSort: Sort = new OstrichStringSort

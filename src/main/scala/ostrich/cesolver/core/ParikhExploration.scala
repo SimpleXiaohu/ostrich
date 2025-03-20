@@ -74,6 +74,7 @@ import ostrich.cesolver.preop.sequence.SeqNthCEPreOpBase
 import ostrich.cesolver.preop.sequence.SeqLenCEPreOpBase
 import ostrich.cesolver.stringtheory.CEStringTheory
 import ostrich.cesolver.preop.sequence.SeqAtCEPreOp
+import ostrich.cesolver.preop.sequence.JoinCEPreOp
 
 object ParikhExploration {
 
@@ -151,6 +152,12 @@ class ParikhExploration(
         fresh2origin += (freshStart -> start)
         fresh2origin += (freshIndex -> index)
         (op, Seq(str, subStr, freshStart), freshIndex)
+      }
+      // sequence operations
+      case (op: JoinCEPreOp, Seq(seq), resStr) => {
+        strTerms += resStr
+        seqTerms += seq
+        (op, Seq(seq), resStr)
       }
       case (op: SplitCEPreOp, Seq(splitedStr), resSeq) => {
         strTerms += splitedStr

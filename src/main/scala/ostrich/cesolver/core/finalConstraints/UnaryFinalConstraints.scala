@@ -78,9 +78,6 @@ class UnaryFinalConstraints(
 
   override def getModel(partialModel: PartialModel): Option[Seq[Int]] = {
     ParikhUtil.log("Get model of string term " + strDataBaseId)
-    ParikhUtil.todo(
-        "UnaryFinalConstraints.getModel: findAcceptedWord: support both StringArrayAutomaton and CostEnrichedAutomaton"
-      )
     if (!hasRegister) findModelAut.getAcceptedWord
     else {
       var registersModel = Map[ITerm, Int]()

@@ -44,7 +44,7 @@ object StringSeqAutomaton {
 
   def isStringResult(word: Seq[Int]): Boolean = !isSeqResult(word)
 
-  /** get the sequence results from the word with arraySplitter
+  /** get the sequence results from the word with seqSplitter
     */
   def toSeqResult(word: Seq[Int]): Seq[Seq[Int]] = {
     val result  = new ArrayBuffer[Seq[Int]]

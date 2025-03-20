@@ -79,7 +79,9 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
     a.pred match {
 
       // Sequences -----------------------------------------------------------
-      // NOTE: not consider edge cases yet, for example, seq_at(s, i) where i > seq_len(s)
+      // FIXME: not consider edge cases yet, for example, the sequence is empty
+      // SOME IDEAS: add a # before the initial state of StringSeqAutomaton, the 
+      // the empty string "" is empty sequence [] and the string "#" is [""]
       case FunPred(`str_join`) if strDatabase isConcrete a(1) => {
         val connector = strDatabase.term2Str(a(1)).get
         Some((() => JoinCEPreOp(connector), List(a(0)), a(2)))

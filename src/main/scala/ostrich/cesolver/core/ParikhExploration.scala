@@ -75,6 +75,7 @@ import ostrich.cesolver.preop.sequence.SeqLenCEPreOpBase
 import ostrich.cesolver.stringtheory.CEStringTheory
 import ostrich.cesolver.preop.sequence.SeqAtCEPreOp
 import ostrich.cesolver.preop.sequence.JoinCEPreOp
+import ostrich.cesolver.preop.sequence.SeqConcatCEPreOp
 
 object ParikhExploration {
 
@@ -124,6 +125,10 @@ class ParikhExploration(
     for ((t, _) <- initialConstraints)
       strTerms += t
     val newFunApps = funApps.map {
+      case (op: SeqConcatCEPreOp, Seq(seq1, seq2), resSeq) => {
+        seqTerms ++= Seq(seq1, seq2, resSeq)
+        (op, Seq(seq1, seq2), resSeq)
+      }
       case (op: LengthCEPreOp, Seq(str), length) => {
         val freshLen = termGen.intTerm
         integerTerms += freshLen
@@ -134,10 +139,8 @@ class ParikhExploration(
       case (op: SubStringCEPreOp, Seq(str, start, length), subStr) => {
         val freshStart = termGen.intTerm
         val freshLen = termGen.intTerm
-        integerTerms += freshStart  
-        integerTerms += freshLen
-        strTerms += str
-        strTerms += subStr
+        integerTerms ++= Seq(freshStart,freshLen)
+        strTerms ++= Seq(str, subStr)
         fresh2origin += (freshStart -> start)
         fresh2origin += (freshLen -> length)
         (op, Seq(str, freshStart, freshLen), subStr)
@@ -145,10 +148,8 @@ class ParikhExploration(
       case (op: IndexOfCEPreOp, Seq(str, subStr, start), index) => {
         val freshStart = termGen.intTerm
         val freshIndex = termGen.intTerm
-        integerTerms += freshStart
-        integerTerms += freshIndex
-        strTerms += str
-        strTerms += subStr
+        integerTerms ++= Seq(freshStart, freshIndex)
+        strTerms ++= Seq(str, subStr)
         fresh2origin += (freshStart -> start)
         fresh2origin += (freshIndex -> index)
         (op, Seq(str, subStr, freshStart), freshIndex)
@@ -176,8 +177,7 @@ class ParikhExploration(
         val freshIndex = termGen.intTerm
         integerTerms += freshIndex
         fresh2origin += (freshIndex -> index)
-        seqTerms += seq
-        seqTerms += resSeq
+        seqTerms ++= Seq(seq,resSeq)
         (op, Seq(seq, freshIndex), resSeq)
       }
       case (op: SeqLenCEPreOpBase, Seq(seq), resLen) => {
@@ -188,8 +188,7 @@ class ParikhExploration(
         (op, Seq(seq), freshLen)
       }
       case (op, strs, resstr) => {
-        strTerms ++= strs
-        strTerms += resstr
+        strTerms ++= (strs :+ resstr)
         (op, strs, resstr)
       }
     }

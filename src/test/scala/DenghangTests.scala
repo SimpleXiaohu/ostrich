@@ -131,4 +131,8 @@ object DenghangTests extends Properties("DenghangTests") {
     checkFile("tests/hu-benchmarks/sequence/join_sat.smt2", "sat")
   property("join_unsat.smt2") =
     checkFile("tests/hu-benchmarks/sequence/join_unsat.smt2", "unsat")
+  property("seq_++_sat.smt2") =
+    checkFile("tests/hu-benchmarks/sequence/seq_++_sat.smt2", "sat")
+  property("seq_++_unsat.smt2") =
+    checkFile("tests/hu-benchmarks/sequence/seq_++_unsat.smt2", "unsat")
 }

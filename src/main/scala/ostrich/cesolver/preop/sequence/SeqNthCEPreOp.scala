@@ -33,7 +33,6 @@ import ostrich.cesolver.automata.StringSeqAutomaton
 import ap.terfor.Term
 import ap.terfor.linearcombination.LinearCombination
 import ostrich.cesolver.preop.CEPreOp
-import ostrich.cesolver.automata.CostEnrichedAutomatonBase
 
 trait SeqNthCEPreOpBase extends CEPreOp {
   override def toString = "seqNthCEPreOp"
@@ -44,7 +43,7 @@ trait SeqNthCEPreOpBase extends CEPreOp {
     val sequence = StringSeqAutomaton.toSeqResult(arguments.head)
     val index    = arguments(1)(0)
     // always add the arraySplitter in the end
-    Some(sequence(index) :+ StringSeqAutomaton.arraySplitter)
+    Some(sequence(index) :+ StringSeqAutomaton.seqSplitter)
   }
 }
 
@@ -64,7 +63,7 @@ class SeqNthCEPreOpConcrete(index: Int) extends SeqNthCEPreOpBase {
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val res         = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
+    val res         = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
     val sigmaLabel  = (Char.MinValue, Char.MaxValue)
     val emptyUpdate = Seq.fill(res.registers.length)(0)
     val argAut      = new StringSeqAutomaton
@@ -94,17 +93,24 @@ class SeqNthCEPreOpConcrete(index: Int) extends SeqNthCEPreOpBase {
       argAut.addTransition(acceptState, sigmaLabel, acceptState, emptyUpdate)
       argAut.addSeqElementConnect(acceptState, acceptState, emptyUpdate)
     }
-    // connect the three parts
+    // connect the states of before, at, and after the index
     if (index == 0) {
-      argAut.initialState = old2new(res.initialState)
+      argAut.addSeqElementConnect(
+        argAut.initialState,
+        old2new(res.initialState),
+        emptyUpdate
+      )
     } else {
-
       argAut.addSeqElementConnect(
         preStates(index - 1),
         old2new(res.initialState),
         emptyUpdate
       )
-      argAut.initialState = preStates(0)
+      argAut.addSeqElementConnect(
+        argAut.initialState,
+        preStates(0),
+        emptyUpdate
+      )
     }
     argAut.registers = res.registers
     argAut.regsRelation = res.regsRelation
@@ -119,29 +125,85 @@ class SeqNthCEPreOp(index: ITerm) extends SeqNthCEPreOpBase {
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val res         = resultConstraint.asInstanceOf[CostEnrichedAutomatonBase]
-    val sigmaLabel  = (Char.MinValue, Char.MaxValue)
-    val argAut      = new StringSeqAutomaton
-    val newRegister = TermGenerator().registerTerm
-    val old2new     = res.states.map(s => (s, argAut.newState())).toMap
-    val updateIndex = Seq.fill(res.registers.length)(0) :+ 1
-    val emptyUpdate = Seq.fill(res.registers.length + 1)(0)
+    // if index > 0
+    val res             = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
+    val sigmaLabel      = (Char.MinValue, Char.MaxValue)
+    val indexGeqZeroAut = new StringSeqAutomaton
+    val newRegister     = TermGenerator().registerTerm
+    val old2new         = res.states.map(s => (s, indexGeqZeroAut.newState())).toMap
+    val addOneUpdate    = Seq.fill(res.registers.length)(0) :+ 1
+    val emptyUpdate     = Seq.fill(res.registers.length + 1)(0)
+    val beforeIdxS      = indexGeqZeroAut.newState()
     // the sequence elements before the index
-    argAut.addTransition(argAut.initialState, sigmaLabel, argAut.initialState, emptyUpdate)
-    argAut.addSeqElementConnect(argAut.initialState, argAut.initialState, updateIndex)
+    indexGeqZeroAut.addTransition(beforeIdxS, sigmaLabel, beforeIdxS, emptyUpdate)
+    indexGeqZeroAut.addSeqElementConnect(beforeIdxS, beforeIdxS, addOneUpdate)
     // the sequence element at the index
     for ((s, l, t, v) <- res.transitions)
-      argAut.addTransition(old2new(s), l, old2new(t), v :+ 0)
+      indexGeqZeroAut.addTransition(old2new(s), l, old2new(t), emptyUpdate)
     // the sequence elements after the index
+    val afterIdxS = indexGeqZeroAut.newState()
+    indexGeqZeroAut.addTransition(
+      afterIdxS,
+      sigmaLabel,
+      afterIdxS,
+      emptyUpdate
+    )
+    indexGeqZeroAut.addSeqElementConnect(afterIdxS, afterIdxS, emptyUpdate)
+    indexGeqZeroAut.setAccept(afterIdxS, true)
     for (s <- res.acceptingStates) {
-      val acceptState = old2new(s)
-      argAut.setAccept(acceptState, true)
-      argAut.addTransition(acceptState, sigmaLabel, acceptState, emptyUpdate)
+      indexGeqZeroAut.setAccept(old2new(s), true)
     }
-    // connect the three parts
-    argAut.addEpsilon(argAut.initialState, old2new(res.initialState))
-    argAut.regsRelation = res.regsRelation & newRegister === index
-    argAut.registers = res.registers :+ newRegister
-    (Iterator(Seq(argAut)), Seq())
+    // connect the states of before, at, and after the index
+    indexGeqZeroAut.addSeqElementConnect(
+      indexGeqZeroAut.initialState,
+      beforeIdxS,
+      emptyUpdate
+    )
+    indexGeqZeroAut.addSeqElementConnect(
+      beforeIdxS,
+      old2new(res.initialState),
+      addOneUpdate
+    )
+    for (s <- res.acceptingStates) 
+      indexGeqZeroAut.addSeqElementConnect(
+        old2new(s),
+        afterIdxS,
+        emptyUpdate
+      )
+    indexGeqZeroAut.regsRelation = res.regsRelation & newRegister === index
+    indexGeqZeroAut.registers = res.registers :+ newRegister
+    // index = 0 
+    val indexEqZeroAut = new StringSeqAutomaton
+    val emptyUpdate2 = Seq.fill(res.registers.length)(0)
+    val old2new2 = res.states.map(s => (s, indexEqZeroAut.newState())).toMap
+    for ((s, l, t, v) <- res.transitions)
+      indexEqZeroAut.addTransition(old2new2(s), l, old2new2(t), v)
+    // the sequence elements after the index
+    val afterIdxS2 = indexEqZeroAut.newState()
+    indexEqZeroAut.addTransition(
+      afterIdxS2,
+      sigmaLabel,
+      afterIdxS2,
+      emptyUpdate2
+    )
+    indexEqZeroAut.addSeqElementConnect(afterIdxS2, afterIdxS2, emptyUpdate2)
+    indexEqZeroAut.setAccept(afterIdxS2, true)
+    for (s <- res.acceptingStates) 
+      indexEqZeroAut.setAccept(old2new2(s), true)
+    // connect the states of before, at, and after the index
+    indexEqZeroAut.addSeqElementConnect(
+      indexEqZeroAut.initialState,
+      old2new2(res.initialState),
+      emptyUpdate2
+    )
+    for (s <- res.acceptingStates) 
+      indexEqZeroAut.addSeqElementConnect(
+        old2new2(s),
+        afterIdxS2,
+        emptyUpdate2
+      )
+    indexEqZeroAut.regsRelation = res.regsRelation & index === 0
+    indexEqZeroAut.registers = res.registers
+    (Iterator(Seq(indexGeqZeroAut), Seq(indexEqZeroAut)), Seq())
   }
 }

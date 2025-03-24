@@ -58,7 +58,6 @@ class CESeqTheory extends SeqTheory {
         assignment: GMap[(IdealInt, Sort), ITerm]
     ): Option[ITerm] = {
       // TODO: implement this to generate model of sequence
-      debugPrintln("Sequence: Decode to Term")
       assignment get ((d, this))
     }
   }
@@ -114,7 +113,7 @@ class CESeqTheory extends SeqTheory {
 
     def postVisit(t: IExpression, arg: Unit, subres: Seq[IExpression]): IExpression = t match {
       case IFunApp(`seq_nth`, _) =>
-        // debugPrintln("Preprocessing Can be done here")
+        // Preprocessing Can be done here
         t update subres
 
       case t => t update subres

@@ -76,7 +76,7 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
   private val equalityPropagator = new OstrichEqualityPropagator(this)
 
   lazy val ceAutDatabase = new CEAutDatabase(this, flags)
-  lazy val seqTheory = CESeqTheoryBuilder.instance
+  lazy val seqTheory = CESeqTheoryBuilder.getTheory
   seqTheory.SeqSort.setStringTheory(this)
   lazy val seqDatabase = new ConcreteSeqDatabase(this)
 

@@ -1,12 +1,16 @@
 package ostrich.cesolver.sequencetheory
 
 import ap.theories.sequences.SeqTheoryBuilder
+import java.util.function.Supplier
 import ap.types.Sort
 
 object CESeqTheoryBuilder {
-  // make the loaded theory a singleton and global one,
-  // so that we can use it in other theory.
-  lazy val instance = new CESeqTheory
+  // Make the CESeqTheory a global one, so that we can use it in CEStringTheory.
+  // We need to take care of the thread safety since the CESeqTheory cantains mutable properties.
+  lazy val instance: ThreadLocal[CESeqTheory] = ThreadLocal.withInitial(new Supplier[CESeqTheory] {
+    override def get(): CESeqTheory = new CESeqTheory
+  })
+  def getTheory: CESeqTheory = instance.get()
 }
 
 
@@ -20,7 +24,7 @@ class CESeqTheoryBuilder extends SeqTheoryBuilder {
     println("Unstable version of " + name + " " + version + ", a solver for sequence constraints")
   }
 
-  val theory = CESeqTheoryBuilder.instance
+  val theory = CESeqTheoryBuilder.getTheory
 
   // We only consider the case of sequences of strings, so the sort is fixed
   // to the string sort.

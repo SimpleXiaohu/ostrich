@@ -28,8 +28,7 @@ object SeqLenCEPreOp {
   }
 }
 
-/**
-  * Pre-operator for seq.len, in the case where the length is a constant.
+/** Pre-operator for seq.len, in the case where the length is a constant.
   */
 class SeqLenCEPreOpConcrete(len: Int) extends SeqLenCEPreOpBase {
   def apply(
@@ -53,31 +52,37 @@ class SeqLenCEPreOpConcrete(len: Int) extends SeqLenCEPreOpBase {
         states(i + 1),
         emptyUpdate
       )
-    argAut.setAccept(states(len - 1), true)
-    argAut.addSeqElementConnect(states(len - 1), states(len - 1), emptyUpdate)
-    argAut.initialState = states(0)
+    if (len > 0) {
+      argAut.setAccept(states(len - 1), true)
+      argAut.addSeqElementConnect(states(len - 1), states(len - 1), emptyUpdate)
+      argAut.addSeqElementConnect(argAut.initialState, states(0), emptyUpdate)
+    } else {
+      argAut.setAccept(argAut.initialState, true)
+    }
     (Iterator(Seq(argAut)), Seq())
   }
 }
 
-/**
-  * Pre-operator for seq.len, in the case where the length is a variable.
+/** Pre-operator for seq.len, in the case where the length is a variable.
   */
 class SeqLenCEPreOp(len: ITerm) extends SeqLenCEPreOpBase {
   def apply(
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val argAut = new StringSeqAutomaton
-    val newReg = TermGenerator().registerTerm
-    val sigmaLabel = (Char.MinValue, Char.MaxValue)
+    val argAut      = new StringSeqAutomaton
+    val loopState   = argAut.newState()
+    val newReg      = TermGenerator().registerTerm
+    val sigmaLabel  = (Char.MinValue, Char.MaxValue)
     val emptyUpdate = Seq(0)
-    val updateLen = Seq(1)
-    argAut.addTransition(argAut.initialState, sigmaLabel, argAut.initialState, emptyUpdate)
-    argAut.addSeqElementConnect(argAut.initialState, argAut.initialState, updateLen)
+    val updateLen   = Seq(1)
+    argAut.addSeqElementConnect(argAut.initialState, loopState, updateLen)
+    argAut.addTransition(loopState, sigmaLabel, loopState, emptyUpdate)
+    argAut.addSeqElementConnect(loopState, loopState, updateLen)
     argAut.setAccept(argAut.initialState, true)
+    argAut.setAccept(loopState, true)
     argAut.registers = Seq(newReg)
-    argAut.regsRelation = newReg === len - 1
+    argAut.regsRelation = newReg === len
     (Iterator(Seq(argAut)), Seq())
   }
 }

@@ -39,7 +39,6 @@ import ostrich.cesolver.stringtheory.{CEStringTheory, CEStringFunctionTranslator
 import ostrich.OstrichReducer
 import ostrich.OstrichReducerFactory
 import ostrich.cesolver.convenience.CostEnrichedConvenience.automaton2CostEnriched
-import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ap.terfor.linearcombination.LinearCombination
 
 class CEReducerFactory(theory: CEStringTheory)

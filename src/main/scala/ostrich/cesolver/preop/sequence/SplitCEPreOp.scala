@@ -64,6 +64,6 @@ class SplitCEPreOp(splitString: String) extends CEPreOp {
     val resSeq = splitLikeJS(argStr, splitString)
     val resSeqInt = resSeq.map(_.map(_.toInt))
     // always add the arraySplitter in the end
-    Some(resSeqInt.flatMap(seq => seq :+ StringSeqAutomaton.arraySplitter))
+    Some(resSeqInt.flatMap(seq => seq :+ StringSeqAutomaton.seqSplitter))
   }
 }

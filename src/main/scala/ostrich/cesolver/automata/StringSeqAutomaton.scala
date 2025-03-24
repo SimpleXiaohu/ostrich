@@ -29,7 +29,6 @@ import ostrich.automata.Automaton
 import scala.collection.mutable.ArrayBuffer
 import ap.parser.IExpression.connectSimplify
 import ap.parser.IBinJunctor
-import ostrich.cesolver.automata.StringSeqAutomaton.arraySplitter
 import ap.parser.ITerm
 import ostrich.cesolver.util.ParikhUtil.sumVec
 import ostrich.cesolver.util.ParikhUtil
@@ -38,19 +37,19 @@ import java.io.File
 import ostrich.cesolver.util.DotWriter
 
 object StringSeqAutomaton {
-  val arraySplitter: Int = 65536 // since the alphabet is from 0 to 65535
+  val seqSplitter: Int = 65536 // since the alphabet is from 0 to 65535
 
-  def isSeqResult(word: Seq[Int]): Boolean = word.contains(arraySplitter)
+  def isSeqResult(word: Seq[Int]): Boolean = word.contains(seqSplitter)
 
   def isStringResult(word: Seq[Int]): Boolean = !isSeqResult(word)
 
-  /** get the sequence results from the word with seqSplitter
+  /** Get the sequence results from the word. For example, we get [a,b] for the input #a#b#
     */
   def toSeqResult(word: Seq[Int]): Seq[Seq[Int]] = {
     val result  = new ArrayBuffer[Seq[Int]]
     var current = new ArrayBuffer[Int]
-    for (c <- word)
-      if (c == arraySplitter) {
+    for (c <- word.tail)
+      if (c == seqSplitter) {
         result += current
         current = new ArrayBuffer[Int]
       } else { current += c }
@@ -60,9 +59,12 @@ object StringSeqAutomaton {
   def makeAnySeq(): StringSeqAutomaton = {
     val aut          = new StringSeqAutomaton
     val initialState = aut.initialState
-    aut.addTransition(initialState, (Char.MinValue, Char.MaxValue), initialState, Seq())
-    aut.addSeqElementConnect(initialState, initialState, Seq())
+    val loopState    = aut.newState()
+    aut.addSeqElementConnect(initialState, loopState, Seq())
+    aut.addTransition(loopState, (Char.MinValue, Char.MaxValue), loopState, Seq())
+    aut.addSeqElementConnect(loopState, loopState, Seq())
     aut.setAccept(initialState, true)
+    aut.setAccept(loopState, true)
     aut
   }
 
@@ -79,24 +81,27 @@ object StringSeqAutomaton {
         aut.addTransition(states(curStatei), (c.toChar, c.toChar), states(curStatei + 1), Seq())
         curStatei += 1
       }
+      // not add element connector in the last sequence
       if (curStatei + 1 < states.size) {
-        // not the last string
         aut.addSeqElementConnect(states(curStatei), states(curStatei + 1), Seq())
         curStatei += 1
       }
     }
     aut.setAccept(states.last, true)
-    aut.initialState = states.head
+    aut.addSeqElementConnect(aut.initialState, states.head, Seq())
+    aut.toDot("fromSeq")
     aut
   }
 }
 
-/** Automaton for string sequences. The accepted words of sequences are always end with the arraySplitter. For example,
-  * # is the empty sequence [], while a# is ["a"]. But in automaton we do not construct the final # explicitly, So we
-  * need to add the arraySplitter in getAcceptedWord.
+/** Automaton for string sequences. The accepted words is in (#w)*# where # is the seqSplitter and w is a string, which
+  * stands for the sequence of strings. For example, #a#b#c# stands for [a, b, c] and # stands for the empty sequence.
+  * NOTE THAT in the automaton, we do not have the # in the end, besides it is added when call getAcceptedWord. For
+  * example, the automaton for #a#b# is q0 -#-> q1 -a-> q2 -#-> q3 -b-> q4
   */
 
 class StringSeqAutomaton extends CostEnrichedAutomatonBase {
+  import StringSeqAutomaton._
 
   protected var seqElementConnect        = new MHashMap[State, MHashSet[(State, Update)]]()
   protected var seqElementConnectReverse = new MHashMap[State, MHashSet[(State, Update)]]()
@@ -130,7 +135,7 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
         if (!visited.contains(from)) { workstack.push(from) }
         result.addTransition(old2new(from), l, old2new(state), v)
       }
-      // array element connections
+      // seq element connections
       for ((from, v) <- previousSeqElements(state)) {
         if (!visited.contains(from)) { workstack.push(from) }
         result.addSeqElementConnect(old2new(from), old2new(state), v)
@@ -143,9 +148,14 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
     result
   }
 
+  // Get all connectors except the first one
   def allConnectors(): MHashSet[(State, State, Update)] = {
     val res = new MHashSet[(State, State, Update)]()
-    for (s <- states; out <- seqElementConnect.get(s); (outt, outv) <- out)
+    for (
+      s            <- states;
+      out          <- seqElementConnect.get(s);
+      (outt, outv) <- out
+    )
       res += ((s, outt, outv))
     res
   }
@@ -228,13 +238,13 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
     while (worklist.nonEmpty) {
       val (state, word) = worklist.pop()
       // always add the arraySplitter in the end
-      if (isAccept(state)) { return Some(word :+ arraySplitter) }
+      if (isAccept(state)) { return Some(word :+ seqSplitter) }
       for ((to, label, _) <- outgoingTransitions(state) if !visited.contains(to)) {
         worklist.push((to, word :+ label._1.toInt))
         visited += to
       }
       for ((to, _) <- nextSeqElements(state) if !visited.contains(to)) {
-        worklist.push((to, word :+ arraySplitter))
+        worklist.push((to, word :+ seqSplitter))
         visited += to
       }
     }
@@ -242,8 +252,6 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
   }
 
   override def getAcceptedWordByRegisters(registersModel: Map[ITerm, Int]): Option[Seq[Int]] = {
-    ParikhUtil.debugPrintln("registersModel: " + registersModel)
-    this.toDot("getAcceptedWordByRegisters")
     if (registers.isEmpty) return getAcceptedWord
     val registersValues = registers.map(registersModel(_))
     // the state is (s, registersValues)
@@ -256,7 +264,7 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
       ap.util.Timeout.check
       val (state, regsVal, word) = worklist.pop()
       // always add the arraySplitter in the end
-      if (isAccept(state) && regsVal == registersValues) return Some(word :+ arraySplitter)
+      if (isAccept(state) && regsVal == registersValues) return Some(word :+ seqSplitter)
       val sortedByVecSum = outgoingTransitions(state).toSeq.sortBy(_._3.sum).reverse
       for ((to, label, vec) <- sortedByVecSum) {
         val nextRegsVal = sumVec(regsVal, vec)
@@ -270,13 +278,11 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
       }
       for ((to, vec) <- nextSeqElements(state)) {
         val nextRegsVal = sumVec(regsVal, vec)
-        ParikhUtil.debugPrintln("nextRegsVal: " + nextRegsVal)
-        ParikhUtil.debugPrintln("(state, to, vec): " + (state, to, vec))
         if (
           !visited.contains((to, nextRegsVal)) &&
           nextRegsVal.zip(registersValues).forall(r => r._1 <= r._2)
         ) {
-          worklist.push((to, nextRegsVal, word :+ arraySplitter))
+          worklist.push((to, nextRegsVal, word :+ seqSplitter))
           visited += ((to, nextRegsVal))
         }
       }
@@ -326,7 +332,7 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
       (t, vec)            <- targetsWithVec
     )
       strbuilder.append(s"""
-        ${s} -> ${t} [label = \"array:(${vec.mkString(",")})\"]""")
+        ${s} -> ${t} [label = \"seqConnector:(${vec.mkString(",")})\"]""")
     strbuilder.append("\n")
     strbuilder.append(s"""        \"${registers.mkString(", ")}\" [shape=plaintext]""")
     strbuilder.append("\n      }")

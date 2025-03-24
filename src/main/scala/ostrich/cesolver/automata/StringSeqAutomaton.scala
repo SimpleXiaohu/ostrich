@@ -56,6 +56,9 @@ object StringSeqAutomaton {
     result
   }
 
+  /** Get the automaton accepting all sequences of strings, while promising that the
+    * fisrt transition is a sequence connector.
+    */
   def makeAnySeq(): StringSeqAutomaton = {
     val aut          = new StringSeqAutomaton
     val initialState = aut.initialState
@@ -290,7 +293,7 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
     None
   }
 
-  // check if the automaton is empty (not considering the registers)
+  // NOTE: This is overapproximation since we do not consider the registers.
   def isEmpty: Boolean = {
     val visited      = new MHashSet[State]
     val worklist     = new ArrayBuffer[State]

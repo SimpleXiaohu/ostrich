@@ -42,62 +42,62 @@ import scala.collection.mutable.{
 import ostrich.cesolver.util.TermGenerator
 import ostrich.cesolver.util.ParikhUtil
 
-object CostEnrichedInitFinalAutomaton {
-  def apply[A <: CostEnrichedAutomaton](
+object StringSeqInitFinalAutomaton {
+  def apply[A <: StringSeqAutomaton](
       aut: A,
       initialState: A#State,
       acceptingStates: Set[A#State]
-  ): CostEnrichedAutomaton = {
+  ): StringSeqAutomaton = {
     ParikhUtil.log(
-      "CostEnrichedInitFinalAutomaton.apply ... aut: " + aut.hashCode() +
+      "StringSeqInitFinalAutomaton.apply ... aut: " + aut.hashCode() +
       ", initialState: " + initialState + ", acceptingStates: " + acceptingStates
     )
     aut match {
-      case _CostEnrichedInitFinalAutomaton(a, _, _) =>
-        _CostEnrichedInitFinalAutomaton(a, initialState, acceptingStates)
+      case _StringSeqInitFinalAutomaton(a, _, _) =>
+        _StringSeqInitFinalAutomaton(a, initialState, acceptingStates)
       case _ =>
-        _CostEnrichedInitFinalAutomaton(aut, initialState, acceptingStates)
+        _StringSeqInitFinalAutomaton(aut, initialState, acceptingStates)
     }
   }
 
-  def setInitial[A <: CostEnrichedAutomaton](
+  def setInitial[A <: StringSeqAutomaton](
       aut: A,
       initialState: A#State
-  ): _CostEnrichedInitFinalAutomaton[_ >: A <: CostEnrichedAutomaton] = {
+  ): _StringSeqInitFinalAutomaton[_ >: A <: StringSeqAutomaton] = {
     ParikhUtil.log(
-      "CostEnrichedInitFinalAutomaton.setInitial ... aut: " + aut.hashCode() +
+      "StringSeqInitFinalAutomaton.setInitial ... aut: " + aut.hashCode() +
       ", initialState: " + initialState
     )
     aut match {
-      case _CostEnrichedInitFinalAutomaton(a, _, oldFinal) =>
-        _CostEnrichedInitFinalAutomaton(a, initialState, oldFinal)
+      case _StringSeqInitFinalAutomaton(a, _, oldFinal) =>
+        _StringSeqInitFinalAutomaton(a, initialState, oldFinal)
       case _ =>
-        _CostEnrichedInitFinalAutomaton(aut, initialState, aut.acceptingStates)
+        _StringSeqInitFinalAutomaton(aut, initialState, aut.acceptingStates)
     }
   }
 
-  def setFinal[A <: CostEnrichedAutomaton](
+  def setFinal[A <: StringSeqAutomaton](
       aut: A,
-      acceptingStates: Set[CostEnrichedAutomaton#State]
-  ): _CostEnrichedInitFinalAutomaton[_ >: A <: CostEnrichedAutomaton] = {
+      acceptingStates: Set[StringSeqAutomaton#State]
+  ): _StringSeqInitFinalAutomaton[_ >: A <: StringSeqAutomaton] = {
     ParikhUtil.log(
-      "CostEnrichedInitFinalAutomaton.setFinal ... aut: " + aut.hashCode() +
+      "StringSeqInitFinalAutomaton.setFinal ... aut: " + aut.hashCode() +
       ", acceptingStates: " + acceptingStates
     )
     aut match {
-      case _CostEnrichedInitFinalAutomaton(a, oldInit, _) =>
-        _CostEnrichedInitFinalAutomaton(a, oldInit, acceptingStates)
+      case _StringSeqInitFinalAutomaton(a, oldInit, _) =>
+        _StringSeqInitFinalAutomaton(a, oldInit, acceptingStates)
       case _ =>
-        _CostEnrichedInitFinalAutomaton(aut, aut.initialState, acceptingStates)
+        _StringSeqInitFinalAutomaton(aut, aut.initialState, acceptingStates)
     }
   }
 }
 
-case class _CostEnrichedInitFinalAutomaton[A <: CostEnrichedAutomaton](
+case class _StringSeqInitFinalAutomaton[A <: StringSeqAutomaton](
     val underlying: A,
     val startState: A#State,
     val _acceptingStates: Set[A#State]
-) extends CostEnrichedAutomaton {
+) extends StringSeqAutomaton {
 
   private val termGen = TermGenerator()
 
@@ -116,14 +116,14 @@ case class _CostEnrichedInitFinalAutomaton[A <: CostEnrichedAutomaton](
     worklist push initState
 
     while (!worklist.isEmpty)
-      for ((s, _, _) <- underlying.outgoingTransitions(worklist.pop))
+      for ((s, _) <- underlying.outgoingTransitionsWithoutLabel(worklist.pop))
         if (fwdReachable add s)
           worklist push s
 
     val backMapping = new MHashMap[State, MHashSet[State]]
 
     for (s <- fwdReachable)
-      for ((t, _, _) <- underlying.outgoingTransitions(s))
+      for ((t, _) <- underlying.outgoingTransitionsWithoutLabel(s))
         backMapping.getOrElseUpdate(t, new MHashSet) += s
 
     for (_s <- accStates; s = _s.asInstanceOf[State])
@@ -143,23 +143,25 @@ case class _CostEnrichedInitFinalAutomaton[A <: CostEnrichedAutomaton](
     bwdReachable
   }
 
-  lazy val internalise: CostEnrichedAutomaton = {
+  lazy val internalise: StringSeqAutomaton = {
     val smap = new MHashMap[underlying.State, underlying.State]
-    val ceAut = new CostEnrichedAutomaton
+    val strSeqAut = new StringSeqAutomaton
 
     for (s <- states)
-      smap.put(s, ceAut.newState())
+      smap.put(s, strSeqAut.newState())
 
     for (from <- states) {
       for ((to, label, update) <- outgoingTransitions(from))
-        ceAut.addTransition(smap(from), label, smap(to), update)
-      ceAut.setAccept(smap(from), isAccept(from))
+        strSeqAut.addTransition(smap(from), label, smap(to), update)
+      for ((to, update) <- nextSeqElements(from))
+        strSeqAut.addSeqElementConnect(smap(from), smap(to), update)
+      strSeqAut.setAccept(smap(from), isAccept(from))
     }
 
-    ceAut.registers = _registers
-    ceAut.regsRelation = _regsRelation
-    ceAut.initialState = smap(initialState)
-    ceAut
+    strSeqAut.registers = _registers
+    strSeqAut.regsRelation = _regsRelation
+    strSeqAut.initialState = smap(initialState)
+    strSeqAut
   }
 
   override lazy val states =
@@ -171,10 +173,10 @@ case class _CostEnrichedInitFinalAutomaton[A <: CostEnrichedAutomaton](
 
   override def isAccept(s: State): Boolean = acceptingStates.contains(s)
 
-  override def outgoingTransitions(q: State) = {
+  override def outgoingTransitions(s: State) = {
     for (
-      p @ (s, _, _) <- underlying.outgoingTransitions(q);
-      if states.toSet.contains(s)
+      p @ (t, _, _) <- underlying.outgoingTransitions(s);
+      if states.toSet.contains(t)
     )
       yield p
   }
@@ -186,6 +188,21 @@ case class _CostEnrichedInitFinalAutomaton[A <: CostEnrichedAutomaton](
     )
       yield p
   }
+
+  override def nextSeqElements(s: State): Iterable[(State, Seq[Int])] = {
+    for (
+      p @ (t, _) <- underlying.nextSeqElements(s);
+      if states.toSet.contains(t)
+    )
+      yield p
+  }
+
+  override def previousSeqElements(s: State): Iterable[(State, Seq[Int])] = 
+    for (
+      p @ (t, _) <- underlying.previousSeqElements(s);
+      if states.toSet.contains(t)
+    )
+      yield p
 
   override def outgoingTransitionsWithoutLabel(s: State): Iterable[(State, Seq[Int])] = 
     outgoingTransitions(s).map { case (to, _, vec) => (to, vec) }.toSet

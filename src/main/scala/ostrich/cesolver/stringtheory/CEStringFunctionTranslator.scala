@@ -51,6 +51,7 @@ import ostrich.cesolver.preop.sequence.SeqNthCEPreOp
 import ostrich.cesolver.preop.sequence.SeqLenCEPreOp
 import ostrich.cesolver.preop.sequence.SeqAtCEPreOp
 import ostrich.cesolver.preop.sequence.JoinCEPreOp
+import ostrich.cesolver.preop.sequence.SeqConcatCEPreOp
 
 /** Class for mapping string constraints to string functions.
   */
@@ -82,6 +83,9 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
       // FIXME: not consider edge cases yet, for example, the sequence is empty
       // SOME IDEAS: add a # before the initial state of StringSeqAutomaton, the 
       // the empty string "" is empty sequence [] and the string "#" is [""]
+      case FunPred(`seq_++`) => {
+        Some((() => SeqConcatCEPreOp(), List(a(0), a(1)), a(2)))
+      }
       case FunPred(`str_join`) if strDatabase isConcrete a(1) => {
         val connector = strDatabase.term2Str(a(1)).get
         Some((() => JoinCEPreOp(connector), List(a(0)), a(2)))

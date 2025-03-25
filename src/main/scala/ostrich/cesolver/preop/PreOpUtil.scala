@@ -36,6 +36,7 @@ import ostrich.cesolver.automata.BricsAutomatonWrapper.{
   makeEmpty,
   makeEmptyString
 }
+import ostrich.cesolver.automata.StringSeqAutomaton
 
 object PreOpUtil {
   def automatonWithLen(len: Int): CostEnrichedAutomaton = {
@@ -65,5 +66,28 @@ object PreOpUtil {
     }
     ceAut.setAccept(states(len - 1), true)
     ceAut
+  }
+
+  def automatonWithLenSeq(len: Int): StringSeqAutomaton = {
+    val sigmaLabel  = (Char.MinValue, Char.MaxValue)
+    val emptyUpdate = Seq()
+    val strSeqAut      = new StringSeqAutomaton
+    val states      = Seq.fill(len + 1)(strSeqAut.newState())
+    for (i <- 1 until states.length)
+      strSeqAut.addTransition(
+        states(i),
+        sigmaLabel,
+        states(i),
+        emptyUpdate
+      )
+    for (i <- 0 until states.length; if i+1 < states.length)
+      strSeqAut.addSeqElementConnect(
+        states(i),
+        states(i + 1),
+        emptyUpdate
+      )
+    strSeqAut.setAccept(states(len), true)
+    strSeqAut.initialState = states(0)
+    strSeqAut
   }
 }

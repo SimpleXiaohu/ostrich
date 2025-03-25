@@ -64,10 +64,6 @@ object StringSeqInitFinalAutomaton {
       aut: A,
       initialState: A#State
   ): _StringSeqInitFinalAutomaton[_ >: A <: StringSeqAutomaton] = {
-    ParikhUtil.log(
-      "StringSeqInitFinalAutomaton.setInitial ... aut: " + aut.hashCode() +
-      ", initialState: " + initialState
-    )
     aut match {
       case _StringSeqInitFinalAutomaton(a, _, oldFinal) =>
         _StringSeqInitFinalAutomaton(a, initialState, oldFinal)
@@ -80,10 +76,6 @@ object StringSeqInitFinalAutomaton {
       aut: A,
       acceptingStates: Set[StringSeqAutomaton#State]
   ): _StringSeqInitFinalAutomaton[_ >: A <: StringSeqAutomaton] = {
-    ParikhUtil.log(
-      "StringSeqInitFinalAutomaton.setFinal ... aut: " + aut.hashCode() +
-      ", acceptingStates: " + acceptingStates
-    )
     aut match {
       case _StringSeqInitFinalAutomaton(a, oldInit, _) =>
         _StringSeqInitFinalAutomaton(a, oldInit, acceptingStates)

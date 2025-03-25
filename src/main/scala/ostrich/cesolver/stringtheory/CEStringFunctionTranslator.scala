@@ -52,6 +52,8 @@ import ostrich.cesolver.preop.sequence.SeqLenCEPreOp
 import ostrich.cesolver.preop.sequence.SeqAtCEPreOp
 import ostrich.cesolver.preop.sequence.JoinCEPreOp
 import ostrich.cesolver.preop.sequence.SeqConcatCEPreOp
+import ostrich.cesolver.preop.sequence.SeqExtractCEPreOp
+import ostrich.cesolver.preop.sequence.SeqWriteCEPreOp
 
 /** Class for mapping string constraints to string functions.
   */
@@ -64,7 +66,8 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
     seq_++,
     seq_at,
     seq_len,
-    seq_extract
+    seq_extract,
+    seq_write
   }
 
   private val regexExtractor = theory.RegexExtractor(facts.predConj)
@@ -83,6 +86,15 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
       // FIXME: not consider edge cases yet, for example, the sequence is empty
       // SOME IDEAS: add a # before the initial state of StringSeqAutomaton, the 
       // the empty string "" is empty sequence [] and the string "#" is [""]
+      case FunPred(`seq_write`) => {
+        val index = Internal2InputAbsy(a(1))
+        Some((() => SeqWriteCEPreOp(index), Seq(a(0), a(1), a(2)), a(3)))
+      }
+      case FunPred(`seq_extract`) => {
+        val offset = Internal2InputAbsy(a(1))
+        val length = Internal2InputAbsy(a(2))
+        Some((() => SeqExtractCEPreOp(offset, length), Seq(a(0), a(1), a(2)), a(3)))
+      }
       case FunPred(`seq_++`) => {
         Some((() => SeqConcatCEPreOp(), List(a(0), a(1)), a(2)))
       }

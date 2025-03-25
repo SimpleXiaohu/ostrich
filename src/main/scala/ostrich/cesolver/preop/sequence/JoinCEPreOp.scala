@@ -27,6 +27,7 @@ class JoinCEPreOp(connector: String) extends CEPreOp {
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
     val res       = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
     val argAut = new StringSeqAutomaton
+    val emptyUpdate = Seq.fill(res.registers.length)(0)
     val old2new = res.states.map(s => s -> argAut.newState).toMap
     for ((s, l, t, v) <- res.transitions) {
       argAut.addTransition(old2new(s), l, old2new(t), v)
@@ -37,9 +38,10 @@ class JoinCEPreOp(connector: String) extends CEPreOp {
     for (s <- res.acceptingStates) {
       argAut.setAccept(old2new(s), true)
     }
-    argAut.initialState = old2new(res.initialState)
+    argAut.addSeqElementConnect(argAut.initialState, old2new(res.initialState), emptyUpdate)
     argAut.registers = res.registers
     argAut.regsRelation = res.regsRelation
+    argAut.toDot("joinCEPreOp_" + '"' + connector + '"')
     (Iterator(Seq(argAut)), Seq())
   }
   /** Evaluate the described function; return <code>None</code> if the function is not defined for the given arguments.

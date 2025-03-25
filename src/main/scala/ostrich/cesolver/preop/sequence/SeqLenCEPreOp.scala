@@ -7,9 +7,56 @@ import ap.parser.ITerm
 import ap.parser.IExpression
 import ap.basetypes.IdealInt
 import ostrich.cesolver.util.TermGenerator
+import ostrich.cesolver.util.ParikhUtil.ConstInteger
+import ostrich.cesolver.preop.PreOpUtil.automatonWithLenSeq
+import ostrich.cesolver.preop.PreOpUtil
 
-trait SeqLenCEPreOpBase extends CEPreOp {
+object SeqLenCEPreOp {
+
+  def seqLengthPreimage(length: ITerm): StringSeqAutomaton = length match {
+      case ConstInteger(value) =>
+        PreOpUtil.automatonWithLenSeq(value) 
+      case _: ITerm => {
+        // q0 -> (#, 1) -> q0; q0 -> (sigma, 0) -> q0
+        val preimage = new StringSeqAutomaton
+        val initalState = preimage.initialState
+        preimage.setAccept(initalState, true)
+        preimage.addTransition(
+          initalState,
+          preimage.LabelOps.sigmaLabel,
+          initalState,
+          Seq(0)
+        )
+        preimage.addSeqElementConnect(
+          initalState,
+          initalState,
+          Seq(1)
+        )
+        // registers: (length)
+        preimage.registers = Seq(length)
+
+        val strSeq = preimage & StringSeqAutomaton.makeAnySeq()
+        strSeq.asInstanceOf[StringSeqAutomaton]
+      }
+    }
+
+
+  def apply(len: ITerm): SeqLenCEPreOp = new SeqLenCEPreOp(len)
+}
+
+/** Pre-operator for seq.len
+  */
+class SeqLenCEPreOp(len: ITerm) extends CEPreOp{
+
+  import SeqLenCEPreOp._
   override def toString = "seqLenCEPreOp"
+
+  def apply(
+      argumentConstraints: Seq[Seq[Automaton]],
+      resultConstraint: Automaton
+  ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
+    (Iterator(Seq(seqLengthPreimage(len))), Seq())
+  }
 
   /** Evaluate the described function; return <code>None</code> if the function is not defined for the given arguments.
     */
@@ -17,72 +64,5 @@ trait SeqLenCEPreOpBase extends CEPreOp {
     val sequence = StringSeqAutomaton.toSeqResult(arguments.head)
     val len      = sequence.length
     Some(Seq(len))
-  }
-}
-
-object SeqLenCEPreOp {
-  def apply(len: ITerm): SeqLenCEPreOpBase = len match {
-    case IExpression.Const(IdealInt(len)) =>
-      new SeqLenCEPreOpConcrete(len)
-    case _: ITerm => new SeqLenCEPreOp(len)
-  }
-}
-
-/** Pre-operator for seq.len, in the case where the length is a constant.
-  */
-class SeqLenCEPreOpConcrete(len: Int) extends SeqLenCEPreOpBase {
-  def apply(
-      argumentConstraints: Seq[Seq[Automaton]],
-      resultConstraint: Automaton
-  ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val sigmaLabel  = (Char.MinValue, Char.MaxValue)
-    val emptyUpdate = Seq()
-    val argAut      = new StringSeqAutomaton
-    val states      = Seq.fill(len)(argAut.newState())
-    for (i <- 0 until states.length)
-      argAut.addTransition(
-        states(i),
-        sigmaLabel,
-        states(i),
-        emptyUpdate
-      )
-    for (i <- 0 until states.length - 1)
-      argAut.addSeqElementConnect(
-        states(i),
-        states(i + 1),
-        emptyUpdate
-      )
-    if (len > 0) {
-      argAut.setAccept(states(len - 1), true)
-      argAut.addSeqElementConnect(states(len - 1), states(len - 1), emptyUpdate)
-      argAut.addSeqElementConnect(argAut.initialState, states(0), emptyUpdate)
-    } else {
-      argAut.setAccept(argAut.initialState, true)
-    }
-    (Iterator(Seq(argAut)), Seq())
-  }
-}
-
-/** Pre-operator for seq.len, in the case where the length is a variable.
-  */
-class SeqLenCEPreOp(len: ITerm) extends SeqLenCEPreOpBase {
-  def apply(
-      argumentConstraints: Seq[Seq[Automaton]],
-      resultConstraint: Automaton
-  ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
-    val argAut      = new StringSeqAutomaton
-    val loopState   = argAut.newState()
-    val newReg      = TermGenerator().registerTerm
-    val sigmaLabel  = (Char.MinValue, Char.MaxValue)
-    val emptyUpdate = Seq(0)
-    val updateLen   = Seq(1)
-    argAut.addSeqElementConnect(argAut.initialState, loopState, updateLen)
-    argAut.addTransition(loopState, sigmaLabel, loopState, emptyUpdate)
-    argAut.addSeqElementConnect(loopState, loopState, updateLen)
-    argAut.setAccept(argAut.initialState, true)
-    argAut.setAccept(loopState, true)
-    argAut.registers = Seq(newReg)
-    argAut.regsRelation = newReg === len
-    (Iterator(Seq(argAut)), Seq())
   }
 }

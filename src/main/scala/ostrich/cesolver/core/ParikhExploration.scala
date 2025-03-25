@@ -71,11 +71,14 @@ import ap.parser.IExpression
 import ostrich.cesolver.preop.sequence.SplitCEPreOp
 import ostrich.cesolver.automata.StringSeqAutomaton
 import ostrich.cesolver.preop.sequence.SeqNthCEPreOpBase
-import ostrich.cesolver.preop.sequence.SeqLenCEPreOpBase
+import ostrich.cesolver.preop.sequence.SeqLenCEPreOp
 import ostrich.cesolver.stringtheory.CEStringTheory
 import ostrich.cesolver.preop.sequence.SeqAtCEPreOp
 import ostrich.cesolver.preop.sequence.JoinCEPreOp
 import ostrich.cesolver.preop.sequence.SeqConcatCEPreOp
+import ostrich.cesolver.preop.sequence.SeqExtractCEPreOp
+import ostrich.cesolver.preop.sequence.SeqWriteCEPreOp
+
 
 object ParikhExploration {
 
@@ -89,7 +92,7 @@ object ParikhExploration {
   private def isStringResultOp(op: PreOp): Boolean = op match {
     case _: LengthCEPreOp  | 
          _: IndexOfCEPreOp | 
-         _: SeqLenCEPreOpBase => false
+         _: SeqLenCEPreOp => false
 
     case _                 => true
   }
@@ -125,6 +128,23 @@ class ParikhExploration(
     for ((t, _) <- initialConstraints)
       strTerms += t
     val newFunApps = funApps.map {
+      case (op: SeqWriteCEPreOp, Seq(seq, index, str), resSeq) => {
+        val freshIndex = termGen.intTerm
+        integerTerms += freshIndex
+        fresh2origin += (freshIndex -> index)
+        seqTerms ++= Seq(seq, resSeq)
+        strTerms += str
+        (op, Seq(seq, freshIndex, str), resSeq)
+      }
+      case (op: SeqExtractCEPreOp, Seq(seq, start, length), resSeq) => {
+        val freshStart = termGen.intTerm
+        val freshLen = termGen.intTerm
+        integerTerms ++= Seq(freshStart,freshLen)
+        seqTerms ++= Seq(seq,resSeq)
+        fresh2origin += (freshStart -> start)
+        fresh2origin += (freshLen -> length)
+        (op, Seq(seq, freshStart, freshLen), resSeq)
+      }
       case (op: SeqConcatCEPreOp, Seq(seq1, seq2), resSeq) => {
         seqTerms ++= Seq(seq1, seq2, resSeq)
         (op, Seq(seq1, seq2), resSeq)
@@ -180,7 +200,7 @@ class ParikhExploration(
         seqTerms ++= Seq(seq,resSeq)
         (op, Seq(seq, freshIndex), resSeq)
       }
-      case (op: SeqLenCEPreOpBase, Seq(seq), resLen) => {
+      case (op: SeqLenCEPreOp, Seq(seq), resLen) => {
         val freshLen = termGen.intTerm
         fresh2origin += (freshLen -> resLen)
         seqTerms += seq

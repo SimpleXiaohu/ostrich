@@ -114,7 +114,7 @@ class IndexOfCEPreOp(startPos: ITerm, index: ITerm, matchString: String)
       }
       case _ => {
         val argStrLen = termGen.lenTerm
-        val smallerThanStartPos = lengthPreimage(argStrLen, false)
+        val smallerThanStartPos = lengthPreimage(argStrLen)
         smallerThanStartPos.regsRelation = connectSimplify(
           Seq(
             smallerThanStartPos.regsRelation,

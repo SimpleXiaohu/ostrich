@@ -65,11 +65,11 @@ class SubStringCEPreOp(beginIdx: ITerm, length: ITerm) extends CEPreOp {
   private def normalPreimage(res: CostEnrichedAutomaton): Automaton = {
     val resLen = termGen.lenTerm
     val resWithLen =
-      intersection(res, LengthCEPreOp.lengthPreimage(resLen, false))
+      intersection(res, LengthCEPreOp.lengthPreimage(resLen))
     val prefixLen = termGen.lenTerm
-    val prefix = LengthCEPreOp.lengthPreimage(prefixLen, false)
+    val prefix = LengthCEPreOp.lengthPreimage(prefixLen)
     val suffixLen = termGen.lenTerm
-    val suffix = LengthCEPreOp.lengthPreimage(suffixLen, false)
+    val suffix = LengthCEPreOp.lengthPreimage(suffixLen)
     val preimage = concatenate(Seq(prefix, resWithLen, suffix))
     val argLen = prefixLen + resLen + suffixLen
     val epsilonResFormula =

@@ -76,6 +76,7 @@ class CESeqTheory extends SeqTheory {
     new MonoSortedIFunction("seq_indexof", List(SSo, ESo, Integer), Integer, true, false)
   val seq_at  = new MonoSortedIFunction("seq_at", List(SSo, Nat), SSo, true, false)
   val seq_nth = new MonoSortedIFunction("seq_nth", List(SSo, Nat), ESo, true, false)
+  val seq_write = new MonoSortedIFunction("seq_write", List(SSo, Nat, ESo), SSo, true, false)
 
   val seq_update = new MonoSortedIFunction("seq_update", List(SSo, Nat, SSo), SSo, true, false)
 
@@ -96,7 +97,8 @@ class CESeqTheory extends SeqTheory {
     seq_at,
     seq_nth,
     seq_update,
-    seq_replace
+    seq_replace,
+    seq_write
   )
   val predefPredicates                                     = List(seq_contains, seq_prefixof, seq_suffixof)
   val (funPredicates, axioms, _, funPredMap)               = Theory.genAxioms(functions)

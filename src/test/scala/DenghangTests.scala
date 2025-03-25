@@ -135,4 +135,12 @@ object DenghangTests extends Properties("DenghangTests") {
     checkFile("tests/hu-benchmarks/sequence/seq_++_sat.smt2", "sat")
   property("seq_++_unsat.smt2") =
     checkFile("tests/hu-benchmarks/sequence/seq_++_unsat.smt2", "unsat")
+  property("seq_extract_sat.smt2") =
+    checkFile("tests/hu-benchmarks/sequence/seq_extract_sat.smt2", "sat")
+  property("seq_extract_unsat.smt2") =
+    checkFile("tests/hu-benchmarks/sequence/seq_extract_unsat.smt2", "unsat")
+  property("seq_write_sat.smt2") =
+    checkFile("tests/hu-benchmarks/sequence/seq_write_sat.smt2", "sat")
+  property("seq_write_unsat.smt2") =
+    checkFile("tests/hu-benchmarks/sequence/seq_write_unsat.smt2", "unsat")
 }

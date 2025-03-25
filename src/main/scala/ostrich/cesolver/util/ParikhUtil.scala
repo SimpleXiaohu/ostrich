@@ -49,6 +49,12 @@ import ostrich.OFlags
 import scala.collection.mutable.Stack
 
 object ParikhUtil {
+  object ConstInteger {
+    def unapply(i: ITerm): Option[Int] = i match {
+      case IExpression.Const(IdealInt(value)) => Some(value)
+      case _                                  => None
+    }
+  }
 
   type State = CostEnrichedAutomatonBase#State
   type TLabel = CostEnrichedAutomatonBase#TLabel

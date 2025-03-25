@@ -56,8 +56,8 @@ object StringSeqAutomaton {
     result
   }
 
-  /** Get the automaton accepting all sequences of strings, while promising that the
-    * fisrt transition is a sequence connector.
+  /** Get the automaton accepting all sequences of strings, while promising that the fisrt transition is a sequence
+    * connector.
     */
   def makeAnySeq(): StringSeqAutomaton = {
     val aut          = new StringSeqAutomaton
@@ -92,7 +92,6 @@ object StringSeqAutomaton {
     }
     aut.setAccept(states.last, true)
     aut.addSeqElementConnect(aut.initialState, states.head, Seq())
-    aut.toDot("fromSeq")
     aut
   }
 }
@@ -119,7 +118,7 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
     .getOrElse(Set())
 
   def previousSeqElements(s: State): Iterable[(State, Update)] = seqElementConnectReverse.get(s)
-    .getOrElse(Set())
+    .getOrElse(Set()).filter(outs => states.toSet.contains(outs._1))
 
   private def removeDeadStates(): StringSeqAutomaton = {
     val result    = new StringSeqAutomaton
@@ -208,6 +207,44 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
       connectSimplify(Seq(this.regsRelation, thatAut.regsRelation), IBinJunctor.And)
     result.registers = this.registers ++ thatAut.registers
     result.removeDeadStates()
+  }
+
+  def ++ (that: StringSeqAutomaton): StringSeqAutomaton = {
+    val result  = new StringSeqAutomaton
+    val preEmptyUpdate = Seq.fill(this.registers.size)(0)
+    val postEmptyUpdate = Seq.fill(that.registers.size)(0)
+    val old2new = (this.states ++ that.states).map(s => s -> result.newState()).toMap
+    // copy this automaton
+    result.initialState = old2new(this.initialState)
+    for (s <- this.states) {
+      for ((to, l, v) <- this.outgoingTransitions(s))
+        result.addTransition(old2new(s), l, old2new(to), v ++ postEmptyUpdate)
+      for ((to, v) <- this.nextSeqElements(s))
+        result.addSeqElementConnect(old2new(s), old2new(to), v ++ postEmptyUpdate)
+    }
+    // copy that automaton and set accepted states
+    for (s <- that.states) {
+      result.setAccept(old2new(s), that.isAccept(s))
+      for ((to, l, v) <- that.outgoingTransitions(s))
+        result.addTransition(old2new(s), l, old2new(to), preEmptyUpdate ++ v)
+      for ((to, v) <- that.nextSeqElements(s))
+        result.addSeqElementConnect(old2new(s), old2new(to), preEmptyUpdate ++ v)
+    }
+    // connect them
+    for (before    <- this.acceptingStates)
+      result.addEpsilon(old2new(before), old2new(that.initialState))
+    result.registers = this.registers ++ that.registers
+    result.regsRelation =
+      connectSimplify(Seq(this.regsRelation, that.regsRelation), IBinJunctor.And)
+    result
+  }
+
+  override def addEpsilon(s: State, t: State): Unit = {
+    if (isAccept(t)) setAccept(s, true)
+    for ((to, l, v) <- outgoingTransitions(t))
+      addTransition(s, l, to, v)
+    for ((to, v) <- nextSeqElements(t))
+      addSeqElementConnect(s, to, v)
   }
 
   override lazy val states: Iterable[State] = {

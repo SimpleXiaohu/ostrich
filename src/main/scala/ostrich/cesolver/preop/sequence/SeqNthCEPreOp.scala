@@ -33,6 +33,7 @@ import ostrich.cesolver.automata.StringSeqAutomaton
 import ap.terfor.Term
 import ap.terfor.linearcombination.LinearCombination
 import ostrich.cesolver.preop.CEPreOp
+import ostrich.cesolver.util.ParikhUtil.ConstInteger
 
 trait SeqNthCEPreOpBase extends CEPreOp {
   override def toString = "seqNthCEPreOp"
@@ -49,7 +50,7 @@ trait SeqNthCEPreOpBase extends CEPreOp {
 
 object SeqNthCEPreOp {
   def apply(index: ITerm): SeqNthCEPreOpBase = index match {
-    case IExpression.Const(IdealInt(index)) =>
+    case ConstInteger(index) =>
       new SeqNthCEPreOpConcrete(index)
     case _: ITerm => new SeqNthCEPreOp(index)
 

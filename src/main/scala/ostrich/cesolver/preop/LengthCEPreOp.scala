@@ -45,10 +45,7 @@ object LengthCEPreOp {
 
   def apply(length: ITerm): LengthCEPreOp = new LengthCEPreOp(length)
 
-  def lengthPreimage(
-      length: ITerm,
-      newReg: Boolean = true
-  ): CostEnrichedAutomaton = {
+  def lengthPreimage(length: ITerm): CostEnrichedAutomaton = {
     val preimage = new CostEnrichedAutomaton
     val initalState = preimage.initialState
 
@@ -64,11 +61,8 @@ object LengthCEPreOp {
           Seq(1)
         )
         preimage.setAccept(initalState, true)
-        // registers: (r0)
-        val reg = if (newReg) termGen.registerTerm else length
-        preimage.registers = Seq(reg)
-        // intFormula : r0 === `length`
-        if (newReg) preimage.regsRelation = reg === length
+        // registers: (length)
+        preimage.registers = Seq(length)
         preimage
     }
 

@@ -150,8 +150,8 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
     result
   }
 
-  // Get all connectors except the first one
-  def allConnectors(): MHashSet[(State, State, Update)] = {
+  // Get all connectors
+  def connectors(): MHashSet[(State, State, Update)] = {
     val res = new MHashSet[(State, State, Update)]()
     for (
       s            <- states;

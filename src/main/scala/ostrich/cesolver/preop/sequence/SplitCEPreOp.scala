@@ -33,6 +33,9 @@ import ostrich.cesolver.automata.StringSeqAutomaton
 import ostrich.cesolver.preop.CEPreOp
 import ostrich.cesolver.preop.ReplaceAllCEPreOp
 import scala.collection.mutable.ArrayBuffer
+import ostrich.cesolver.util.ParikhUtil.debugPrintln
+import ap.parser.smtlib.Absyn.Term
+import ap.parser.IBinJunctor
 
 object SplitCEPreOp {
   def apply(splitString: String): SplitCEPreOp = new SplitCEPreOp(splitString)
@@ -50,8 +53,41 @@ class SplitCEPreOp(splitString: String) extends CEPreOp {
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
     val res       = resultConstraint.asInstanceOf[StringSeqAutomaton]
     val tran      = ReplaceAllCEPreOp.buildTransducer(splitString.toCharArray())
-    val internals = res.allConnectors()
-    val argAut    = tran.preImage(res, internals)
+    val deleteFirstConnectorAut = {
+      val aut     = new StringSeqAutomaton
+      val old2new = res.states.map(s => s -> aut.newState).toMap
+      for ((s, l, t, v) <- res.transitions)
+        aut.addTransition(old2new(s), l, old2new(t), v)
+      for ((s, t, v) <- res.connectors())
+        aut.addSeqElementConnect(old2new(s), old2new(t), v)
+      for (s <- res.acceptingStates)
+        aut.setAccept(old2new(s), true)
+      // deleteFirstConnector and store the update
+      var firstUpdate = Seq.fill(res.registers.length)(0)
+      for ((s, v) <- res.nextSeqElements(res.initialState)) {
+        aut.initialState = old2new(s)
+        firstUpdate = v
+      }
+      aut.registers = Seq.fill(res.registers.length)(TermGenerator().registerTerm)
+      import IExpression._
+      val updateF = connectSimplify(
+        (aut.registers zip firstUpdate zip res.registers).map {
+          case ((r, u), oldR) => r + u === oldR
+        },
+        IBinJunctor.And
+      )
+      aut.regsRelation = connectSimplify(
+        Seq(res.regsRelation, updateF),
+        IBinJunctor.And
+      )
+      aut
+    }
+    deleteFirstConnectorAut.toDot("deleteFirstConnectorAut")
+    res.toDot("splitCEPreOp_res")
+    val internals = deleteFirstConnectorAut.connectors()
+    val argAut = tran.preImage(deleteFirstConnectorAut, internals)
+    debugPrintln("internals: " + internals)
+    argAut.toDot("splitCEPreOp_" + '"' + splitString + '"')
     (Iterator(Seq(argAut)), Seq())
   }
 
@@ -60,10 +96,11 @@ class SplitCEPreOp(splitString: String) extends CEPreOp {
   def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
     def splitLikeJS(a: String, b: String): Seq[String] =
       a.split(java.util.regex.Pattern.quote(b), -1) // `-1` keeps empty strings (like JS)
-    val argStr = arguments.head.map(_.toChar).mkString
-    val resSeq = splitLikeJS(argStr, splitString)
+    val argStr    = arguments.head.map(_.toChar).mkString
+    val resSeq    = splitLikeJS(argStr, splitString)
     val resSeqInt = resSeq.map(_.map(_.toInt))
     // always add the arraySplitter in the end
-    Some(resSeqInt.flatMap(seq => seq :+ StringSeqAutomaton.seqSplitter))
+    import StringSeqAutomaton.seqSplitter
+    Some(resSeqInt.foldLeft(Seq(seqSplitter))((spl, ele) => spl ++ ele :+ seqSplitter))
   }
 }

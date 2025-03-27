@@ -20,23 +20,29 @@ object SeqLenCEPreOp {
         // q0 -> (#, 1) -> q0; q0 -> (sigma, 0) -> q0
         val preimage = new StringSeqAutomaton
         val initalState = preimage.initialState
+        val acceptedS = preimage.newState
         preimage.setAccept(initalState, true)
+        preimage.setAccept(acceptedS, true)
         preimage.addTransition(
-          initalState,
+          acceptedS,
           preimage.LabelOps.sigmaLabel,
-          initalState,
+          acceptedS,
           Seq(0)
         )
         preimage.addSeqElementConnect(
-          initalState,
-          initalState,
+          acceptedS,
+          acceptedS,
           Seq(1)
         )
+        preimage.addSeqElementConnect(
+          initalState,
+          acceptedS,
+          Seq(1)
+        ) 
         // registers: (length)
         preimage.registers = Seq(length)
 
-        val strSeq = preimage & StringSeqAutomaton.makeAnySeq()
-        strSeq.asInstanceOf[StringSeqAutomaton]
+        preimage
       }
     }
 

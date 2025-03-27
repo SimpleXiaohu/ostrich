@@ -1,115 +1,106 @@
-/**
- * This file is part of Ostrich, an SMT solver for strings.
- * Copyright (c) 2023 Denghang Hu. All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- * 
- * * Redistributions of source code must retain the above copyright notice, this
- *   list of conditions and the following disclaimer.
- * 
- * * Redistributions in binary form must reproduce the above copyright notice,
- *   this list of conditions and the following disclaimer in the documentation
- *   and/or other materials provided with the distribution.
- * 
- * * Neither the name of the authors nor the names of their
- *   contributors may be used to endorse or promote products derived from
- *   this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+/** This file is part of Ostrich, an SMT solver for strings. Copyright (c) 2023 Denghang Hu. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
+  * following conditions are met:
+  *
+  * * Redistributions of source code must retain the above copyright notice, this list of conditions and the following
+  * disclaimer.
+  *
+  * * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
+  * following disclaimer in the documentation and/or other materials provided with the distribution.
+  *
+  * * Neither the name of the authors nor the names of their contributors may be used to endorse or promote products
+  * derived from this software without specific prior written permission.
+  *
+  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  */
 
 package ostrich.cesolver.automata
-import scala.collection.mutable.{
-  HashMap => MHashMap,
-  HashSet => MHashSet,
-  Stack => MStack,
-  MultiMap => MMultiMap,
-  Set => MSet,
-  LinkedHashSet => MLinkedHashSet
-}
+import scala.collection.mutable.{HashMap => MHashMap, HashSet => MHashSet, Stack => MStack, MultiMap => MMultiMap, Set => MSet, LinkedHashSet => MLinkedHashSet}
 import ostrich.automata.TLabelOps
 import ostrich.automata.BricsTLabelOps
 import ostrich.automata.Transducer._
 import ostrich.cesolver.util.ParikhUtil.{log, sumVec}
 
 object CETransducer {
-  type State = CostEnrichedAutomatonBase#State
+  type State  = CostEnrichedAutomatonBase#State
   type TLabel = CostEnrichedAutomatonBase#TLabel
 
-  /**
-   * Transducer that eats every input and produces no output.
-   */
-  lazy val SilentTransducer : CETransducer = {
-    
+  /** Transducer that eats every input and produces no output.
+    */
+  lazy val SilentTransducer: CETransducer = {
 
     val ceTran = new CETransducer
 
     ceTran.setAccept(ceTran.initialState, true)
 
-    ceTran.addTransition(ceTran.initialState,
-                          ceTran.LabelOps.sigmaLabel,
-                          OutputOp("", NOP, ""),
-                          ceTran.initialState)
+    ceTran.addTransition(ceTran.initialState, ceTran.LabelOps.sigmaLabel, OutputOp("", NOP, ""), ceTran.initialState)
 
     ceTran
   }
 }
 
-
 class CETransducer {
   import CETransducer._
-  
 
-  type TTransition = (TLabel, OutputOp, State)
+  // replace the input character with a sequence connector
+  case object SeqConnector extends InputOp
+
+  type TTransition  = (TLabel, OutputOp, State)
   type TETransition = (OutputOp, State) // epsilon transition
+  type TCTransition = (OutputOp, State) // connector transition
 
-  private var stateidx = 0
-  private var _initialState: State = newState()
+  trait TransitionType
+  case class TTransitionType(t: TTransition) extends TransitionType
+  case class TETransitionType(t: TETransition) extends TransitionType
+  case class TCTransitionType(t: TCTransition) extends TransitionType
+
+  private var stateidx                                          = 0
+  private var _initialState: State                              = newState()
   private val _lblTrans: MHashMap[State, MHashSet[TTransition]] = MHashMap()
-  private val _eTrans: MHashMap[State, MHashSet[TETransition]] = MHashMap()
-  private val _acceptingStates: MHashSet[State] = MHashSet()
+  private val _eTrans: MHashMap[State, MHashSet[TETransition]]  = MHashMap()
+  private val _cTrans: MHashMap[State, MHashSet[TCTransition]]  = MHashMap()
+  private val _acceptingStates: MHashSet[State]                 = MHashSet()
 
-  private def label(t: TTransition) = t._1
-  private def operation(t: TTransition) = t._2
+  private def label(t: TTransition)       = t._1
+  private def operation(t: TTransition)   = t._2
+  private def operation(t: TETransition)  = t._1
+
   private def dest(t: TTransition): State = t._3
-  private def operation(t: TETransition) = t._1
-
   private def dest(t: TETransition): State = t._2
-  private def dest(t: Either[TTransition, TETransition]): State = t match {
-    case Left(lblTran) => dest(lblTran)
-    case Right(eTran)  => dest(eTran)
+
+
+  private def dest(t: TransitionType): State = t match {
+    case TTransitionType(lblTran) => dest(lblTran)
+    case TETransitionType(eTran)  => dest(eTran)
+    case TCTransitionType(cTran)  => dest(cTran)
   }
 
   val LabelOps: TLabelOps[TLabel] = BricsTLabelOps
 
   def isAccept(s: State) = _acceptingStates.contains(s)
 
-  def preImage(aut : CostEnrichedAutomatonBase) : CostEnrichedAutomatonBase =
-    preImage(aut, Iterable())
-
   def preImage(
       aut: CostEnrichedAutomatonBase,
-      internals: Iterable[(State, State, Seq[Int])] = Iterable()
+      internals: Iterable[(State, State, Seq[Int])] = Iterable(),
+      isSeqPreImage: Boolean = false
   ): CostEnrichedAutomatonBase =
     /* Exploration.measure("transducer pre-op") */ {
       log("Computing pre-image of transducer")
-      val ceAut = new CostEnrichedAutomaton
-      ceAut.registers = aut.registers
-      ceAut.regsRelation = aut.regsRelation
+      val preImageAut = if (isSeqPreImage)
+        new StringSeqAutomaton
+      else
+        new CostEnrichedAutomaton
+      preImageAut.registers = aut.registers
+      preImageAut.regsRelation = aut.regsRelation
 
-      val emptyVec = Seq.fill(aut.registers.size)(0)
+      val emptyVec     = Seq.fill(aut.registers.size)(0)
       val epsilonPairs = new MHashSet[(State, State, Seq[Int])]
 
       val internalMap =
@@ -127,31 +118,22 @@ class CETransducer {
 
       // map states of pre-image aut to state of transducer and state of
       // aut
-      val sMap = new MHashMap[State, (State, State)]
+      val sMap    = new MHashMap[State, (State, State)]
       val sMapRev = new MHashMap[(State, State), State]
 
-      val initAutState = aut.initialState
-      val newInitState = ceAut.initialState
+      sMap += (preImageAut.initialState            -> ((_initialState, aut.initialState)))
+      sMapRev += (_initialState, aut.initialState) -> preImageAut.initialState
 
-      sMap += (newInitState -> ((_initialState, initAutState)))
-      sMapRev += (_initialState, initAutState) -> newInitState
-
-      // collect silent transitions during main loop and eliminate them
-      // after (TODO: think of more efficient solution)
-      new MHashMap[State, MSet[State]]
-        with MMultiMap[State, State]
-
-      // transducer state, automaton state
-      def getState(ts: State, as: State) = {
+      // get corresponding preimage state from (transducer state, automaton state)
+      def getState(ts: State, as: State): State =
         sMapRev.getOrElse(
           (ts, as), {
-            val ps = ceAut.newState()
+            val ps = preImageAut.newState()
             sMapRev += ((ts, as) -> ps)
-            sMap += (ps -> (ts, as))
+            sMap += (ps          -> (ts, as))
             ps
           }
         )
-      }
 
       // when working through a transition ..
       abstract class Mode
@@ -175,7 +157,7 @@ class CETransducer {
         (
             State,
             State,
-            Either[TTransition, TETransition],
+            TransitionType,
             State,
             Seq[Int],
             Mode
@@ -185,7 +167,7 @@ class CETransducer {
         (
             State,
             State,
-            Either[TTransition, TETransition],
+            TransitionType,
             State,
             Seq[Int],
             Mode
@@ -195,36 +177,35 @@ class CETransducer {
       def addWork(
           ps: State,
           ts: State,
-          t: Either[TTransition, TETransition],
+          t: TransitionType,
           as: State,
           vec: Seq[Int],
           m: Mode
-      ) {
+      ): Unit =
         if (!seenlist.contains((ps, ts, t, as, vec, m))) {
           seenlist += ((ps, ts, t, as, vec, m))
           worklist.push((ps, ts, t, as, vec, m))
         }
-      }
 
-      def reachStates(ts: State, as: State) {
+      def reachStates(ts: State, as: State): Unit = {
         val ps = getState(ts, as)
         if (isAccept(ts) && aut.isAccept(as))
-          ceAut.setAccept(ps, true)
+          preImageAut.setAccept(ps, true)
 
         for (trans <- _lblTrans.get(ts); t <- trans) {
           val tOp = operation(t)
           if (tOp.preW.isEmpty)
-            addWork(ps, ts, Left(t), as, emptyVec, Op)
+            addWork(ps, ts, TTransitionType(t), as, emptyVec, Op)
           else
-            addWork(ps, ts, Left(t), as, emptyVec, Pre(tOp.preW))
+            addWork(ps, ts, TTransitionType(t), as, emptyVec, Pre(tOp.preW))
         }
 
         for (trans <- _eTrans.get(ts); t <- trans) {
           val tOp = operation(t)
           if (tOp.preW.isEmpty)
-            addWork(ps, ts, Right(t), as, emptyVec, Op)
+            addWork(ps, ts, TETransitionType(t), as, emptyVec, Op)
           else
-            addWork(ps, ts, Right(t), as, emptyVec, Pre(tOp.preW))
+            addWork(ps, ts, TETransitionType(t), as, emptyVec, Pre(tOp.preW))
         }
       }
 
@@ -235,16 +216,15 @@ class CETransducer {
         val (ps, ts, t, as, vec, m) = worklist.pop()
 
         m match {
-          case Pre(u) if u.isEmpty => {
+          case Pre(u) if u.isEmpty =>
             // should never happen
             throw new Exception(
               "When computing pre-image of CETransducer: should never happen"
             )
-          }
-          case Pre(u) if !u.isEmpty => {
-            val a = u.head
+          case Pre(u) if !u.isEmpty =>
+            val a    = u.head
             val rest = u.tail
-            for ((asNext, albl, asVec) <- aut.outgoingTransitions(as)) {
+            for ((asNext, albl, asVec) <- aut.outgoingTransitions(as))
               if (aut.LabelOps.labelContains(a, albl)) {
                 if (!rest.isEmpty) {
                   addWork(ps, ts, t, asNext, sumVec(vec, asVec), Pre(rest))
@@ -252,116 +232,82 @@ class CETransducer {
                   addWork(ps, ts, t, asNext, sumVec(vec, asVec), Op)
                 }
               }
-            }
-          }
-          case Op => {
+          case Op =>
             t match {
-              case Left(lblTran) => {
-                val tOp = operation(lblTran)
+              case TTransitionType(lblTran) =>
+                val tOp        = operation(lblTran)
                 val (min, max) = label(lblTran)
-                val tlbl = aut.LabelOps.interval(min, max)
+                val tlbl       = aut.LabelOps.interval(min, max)
                 tOp.op match {
-                  case NOP => {
+                  case NOP =>
                     addWork(ps, ts, t, as, vec, Post(tOp.postW, tlbl))
-                  }
-                  case Internal => {
+                  case Internal =>
                     for ((asNext, asVec) <- internalMap(as))
                       addWork(ps, ts, t, asNext, sumVec(vec, asVec), Post(tOp.postW, tlbl))
-                  }
-                  case Plus(n) => {
-                    for (
-                      (asNext, albl, asVec) <- aut.outgoingTransitions(
-                        as
-                      )
-                    ) {
+                  case Plus(n) =>
+                    for ((asNext, albl, asVec) <- aut.outgoingTransitions(as)) {
                       val shftLbl = aut.LabelOps.shift(albl, -n)
                       if (aut.LabelOps.isNonEmptyLabel(shftLbl)) {
-                        for (
-                          preLbl <- aut.LabelOps.intersectLabels(shftLbl, tlbl)
-                        ) {
-                          addWork(
-                            ps,
-                            ts,
-                            t,
-                            asNext,
-                            sumVec(vec, asVec),
-                            Post(tOp.postW, preLbl)
-                          )
-                        }
+                        for (preLbl <- aut.LabelOps.intersectLabels(shftLbl, tlbl))
+                          addWork(ps, ts, t, asNext, sumVec(vec, asVec), Post(tOp.postW, preLbl))
                       }
                     }
-                  }
                 }
-              }
 
-              case Right(eTran) => {
+              case TETransitionType(eTran) =>
                 val tOp = operation(eTran)
                 tOp.op match {
-                  case NOP => {
+                  case NOP =>
                     // deleting an e-label means doing nothing
                     addWork(ps, ts, t, as, vec, EPost(tOp.postW))
-                  }
-                  case Internal => {
+                  case Internal =>
                     for ((asNext, asVec) <- internalMap(as))
                       addWork(ps, ts, t, asNext, sumVec(vec, asVec), EPost(tOp.postW))
-                  }
-                  case Plus(_) => {
+                  case Plus(_) =>
                     // treat as delete -- can't shift e-tran
                     addWork(ps, ts, t, as, vec, EPost(tOp.postW))
-                  }
                 }
-              }
             }
-          }
-          case Post(v, lbl) if !v.isEmpty => {
-            val a = v.head
+          case Post(v, lbl) if !v.isEmpty =>
+            val a    = v.head
             val rest = v.tail
-            for ((asNext, albl, asVec) <- aut.outgoingTransitions(as)) {
+            for ((asNext, albl, asVec) <- aut.outgoingTransitions(as))
               if (aut.LabelOps.labelContains(a, albl))
                 addWork(ps, ts, t, asNext, sumVec(vec, asVec), Post(rest, lbl))
-            }
-          }
-          case Post(v, lbl) if v.isEmpty => {
+          case Post(v, lbl) if v.isEmpty =>
             val tsNext = dest(t)
             val psNext = getState(dest(t), as)
 
-            ceAut.addTransition(ps, lbl, psNext, vec)
+            preImageAut.addTransition(ps, lbl, psNext, vec)
 
             reachStates(tsNext, as)
-          }
-          case EPost(v) if !v.isEmpty => {
-            val a = v.head
+          case EPost(v) if !v.isEmpty =>
+            val a    = v.head
             val rest = v.tail
-            for ((asNext, albl, asVec) <- aut.outgoingTransitions(as)) {
+            for ((asNext, albl, asVec) <- aut.outgoingTransitions(as))
               if (aut.LabelOps.labelContains(a, albl))
                 addWork(ps, ts, t, asNext, sumVec(vec, asVec), EPost(rest))
-            }
-          }
-          case EPost(v) if v.isEmpty => {
+          case EPost(v) if v.isEmpty =>
             val tsNext = dest(t)
             val psNext = getState(dest(t), as)
 
             epsilonPairs += ((ps, psNext, vec))
 
             reachStates(tsNext, as)
-          }
         }
       }
 
       def addEpsilonWithVec(ps: State, pt: State, vec: Seq[Int]) {
-        if (ceAut.isAccept(pt)) ceAut.setAccept(ps, true)
-        for ((to, lbl, pVec) <- ceAut.outgoingTransitions(pt)) {
-          ceAut.addTransition(ps, lbl, to, sumVec(vec, pVec))
-        }
+        if (preImageAut.isAccept(pt)) preImageAut.setAccept(ps, true)
+        for ((to, lbl, pVec) <- preImageAut.outgoingTransitions(pt))
+          preImageAut.addTransition(ps, lbl, to, sumVec(vec, pVec))
       }
-      for ((ps, pt, vec) <- epsilonPairs) {
+      for ((ps, pt, vec) <- epsilonPairs)
         addEpsilonWithVec(ps, pt, vec)
-      }
-      ceAut
+      preImageAut
     }
 
-  /** Apply the transducer to the input, replacing any internal characters with
-    * the given string.
+  /** Apply the transducer to the input, replacing any internal characters with the given string.
     *
     * Assumes transducer is functional, so returns the first found output
     */
@@ -383,10 +329,8 @@ class CETransducer {
         for (ts <- _lblTrans.get(s); t <- ts) {
           val pnext = pos + 1
           val snext = dest(t)
-          val lbl = label(t)
-          if (
-            LabelOps.labelContains(a, lbl) && !seenlist.contains((snext, pnext))
-          ) {
+          val lbl   = label(t)
+          if (LabelOps.labelContains(a, lbl) && !seenlist.contains((snext, pnext))) {
             val tOp = operation(t)
             val opOut = tOp.op match {
               case NOP      => ""
@@ -424,41 +368,45 @@ class CETransducer {
     return None
   }
 
-  def newState(): State = {
+  def newState(): State = synchronized {
     stateidx += 1
     new State() {
       val idx = stateidx
-      override def toString(): String = {
+      override def toString(): String =
         s"s${idx}"
-      }
     }
   }
 
   def setAccept(s: State, isAccept: Boolean) = if (isAccept) _acceptingStates += s
-  def initialState_=(s: State) = _initialState = s
-  def initialState = _initialState
+  def initialState_=(s: State)               = _initialState = s
+  def initialState                           = _initialState
 
-  def addTransition(from: State, lbl: TLabel, op: OutputOp, to: State) = {
+  def addTransition(from: State, lbl: TLabel, op: OutputOp, to: State) =
     _lblTrans.get(from) match {
       case Some(set) => set.add((lbl, op, to))
       case None      => _lblTrans.put(from, MHashSet((lbl, op, to)))
     }
-  }
 
-  def addETransition(from: State, op: OutputOp, to: State) = {
+  def addETransition(from: State, op: OutputOp, to: State) =
     _eTrans.get(from) match {
       case Some(set) => set.add((op, to))
       case None      => _eTrans.put(from, MHashSet((op, to)))
     }
-  }
 
-  def minimize() = {
-    log("Minimizing transducer")
-    def dest(t: TTransition): State = t._3
+  def addCTransition(from: State, op: OutputOp, to: State) =
+    _cTrans.get(from) match {
+      case Some(set) => set.add((op, to))
+      case None      => _cTrans.put(from, MHashSet((op, to)))
+    }
+
+  def removeDeadStates() = {
+    log("CETransducer: remove dead states")
+    def dest(t: TTransition): State   = t._3
     def edest(t: TETransition): State = t._2
+    def cdest(t: TCTransition): State = t._2
 
     val fwdReach = new MHashSet[State]
-    val bwdMap = new MHashMap[State, MSet[State]] with MMultiMap[State, State]
+    val bwdMap   = new MHashMap[State, MSet[State]] with MMultiMap[State, State]
     val worklist = new MStack[State]
 
     fwdReach += _initialState
@@ -478,6 +426,12 @@ class CETransducer {
         if (fwdReach.add(snext))
           worklist.push(snext)
       }
+      for (trans <- _cTrans.get(s); t <- trans) {
+        val snext = cdest(t)
+        bwdMap.addBinding(snext, s)
+        if (fwdReach.add(snext))
+          worklist.push(snext)
+      }
     }
 
     val bwdReach = new MHashSet[State]
@@ -492,7 +446,7 @@ class CETransducer {
 
       for (
         snexts <- bwdMap.get(s);
-        snext <- snexts;
+        snext  <- snexts;
         if fwdReach.contains(snext)
       )
         if (bwdReach.add(snext))
@@ -502,20 +456,23 @@ class CETransducer {
     _acceptingStates.retain(bwdReach.contains(_))
     _lblTrans.retain((k, _) => bwdReach.contains(k))
     _eTrans.retain((k, _) => bwdReach.contains(k))
-    _lblTrans.foreach({ case (_, v) =>
+    _cTrans.retain((k, _) => bwdReach.contains(k))
+    _lblTrans.foreach { case (_, v) =>
       v.retain(t => bwdReach.contains(dest(t)))
-    })
-    _eTrans.foreach({ case (_, v) =>
+    }
+    _eTrans.foreach { case (_, v) =>
       v.retain(t => bwdReach.contains(edest(t)))
-    })
+    }
+    _cTrans.foreach { case (_, v) =>
+      v.retain(t => bwdReach.contains(cdest(t)))
+    }
   }
 
-  override def toString = {
+  override def toString =
     "init: " + _initialState + "\n" +
       "finals: " + _acceptingStates + "\n" +
       _lblTrans.mkString("\n") +
       _eTrans.mkString("\n")
-  }
 
   def toDot(): String = {
     val sb = new StringBuilder()

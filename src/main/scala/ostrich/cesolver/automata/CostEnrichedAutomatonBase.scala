@@ -185,6 +185,8 @@ abstract class CostEnrichedAutomatonBase extends Automaton {
 
   def regsRelation_=(f: IFormula) = _regsRelation = f
 
+  def removeDeadStates() : CostEnrichedAutomatonBase = {this}
+
   /////////////////////////////
 
   def emptinessCheckFormula = connectSimplify(Seq(

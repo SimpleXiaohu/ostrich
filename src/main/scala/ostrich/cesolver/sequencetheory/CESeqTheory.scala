@@ -23,9 +23,7 @@ import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ap.theories.TheoryRegistry
 import ostrich.cesolver.stringtheory.CEStringTheory
 
-/**
-  * The theory to handle the sequence of strings.
-  *
+/** The theory to handle the sequence of strings.
   */
 class CESeqTheory extends SeqTheory {
 
@@ -56,10 +54,9 @@ class CESeqTheory extends SeqTheory {
     override def decodeToTerm(
         d: IdealInt,
         assignment: GMap[(IdealInt, Sort), ITerm]
-    ): Option[ITerm] = {
+    ): Option[ITerm] =
       // TODO: implement this to generate model of sequence
       assignment get ((d, this))
-    }
   }
 
   private val ESo = ElementSort
@@ -74,9 +71,8 @@ class CESeqTheory extends SeqTheory {
   val seq_extract = new MonoSortedIFunction("seq_extract", List(SSo, Nat, Nat), SSo, true, false)
   val seq_indexof =
     new MonoSortedIFunction("seq_indexof", List(SSo, ESo, Integer), Integer, true, false)
-  val seq_at  = new MonoSortedIFunction("seq_at", List(SSo, Nat), SSo, true, false)
-  val seq_nth = new MonoSortedIFunction("seq_nth", List(SSo, Nat), ESo, true, false)
-  val seq_write = new MonoSortedIFunction("seq_write", List(SSo, Nat, ESo), SSo, true, false)
+  val seq_at     = new MonoSortedIFunction("seq_at", List(SSo, Nat), SSo, true, false)
+  val seq_nth    = new MonoSortedIFunction("seq_nth", List(SSo, Nat), ESo, true, false)
 
   val seq_update = new MonoSortedIFunction("seq_update", List(SSo, Nat, SSo), SSo, true, false)
 
@@ -84,6 +80,17 @@ class CESeqTheory extends SeqTheory {
   val seq_prefixof = new MonoSortedPredicate("seq_prefixof", List(SSo, SSo))
   val seq_suffixof = new MonoSortedPredicate("seq_suffixof", List(SSo, SSo))
   val seq_replace  = new MonoSortedIFunction("seq_replace", List(SSo, SSo, SSo), SSo, true, false)
+
+  val seq_write  = new MonoSortedIFunction("seq_write", List(SSo, Nat, ESo), SSo, true, false)
+  val ReSo       = Sort.createInfUninterpretedSort("RegLan")
+  val seq_filter = new MonoSortedIFunction("seq_filter", List(SSo, ReSo), SSo, true, false)
+  val seq_match      : IFunction  = 
+    new MonoSortedIFunction("seq_match",
+                            List(ESo, ReSo), SSo, true, false)
+  val seq_match_all  : IFunction  =
+    new MonoSortedIFunction("seq_match_all",
+                            List(ESo, ReSo), SSo, true, false)
+
   ////////////////////////////////////////////////////////////////
 
   val functions = List(
@@ -98,7 +105,10 @@ class CESeqTheory extends SeqTheory {
     seq_nth,
     seq_update,
     seq_replace,
-    seq_write
+    seq_write,
+    seq_filter,
+    seq_match,
+    seq_match_all
   )
   val predefPredicates                                     = List(seq_contains, seq_prefixof, seq_suffixof)
   val (funPredicates, axioms, _, funPredMap)               = Theory.genAxioms(functions)

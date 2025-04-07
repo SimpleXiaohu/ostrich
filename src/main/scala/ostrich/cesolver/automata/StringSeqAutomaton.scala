@@ -120,7 +120,7 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
   def previousSeqElements(s: State): Iterable[(State, Update)] = seqElementConnectReverse.get(s)
     .getOrElse(Set()).filter(outs => states.toSet.contains(outs._1))
 
-  private def removeDeadStates(): StringSeqAutomaton = {
+  override def removeDeadStates(): StringSeqAutomaton = {
     val result    = new StringSeqAutomaton
     val old2new   = states.map(s => s -> result.newState()).toMap
     val workstack = new MStack[State]

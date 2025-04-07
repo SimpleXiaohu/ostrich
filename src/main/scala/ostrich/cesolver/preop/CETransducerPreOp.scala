@@ -49,8 +49,8 @@ class CETransducerPreOp(t : CETransducer) extends CEPreOp {
 
   def eval(arguments : Seq[Seq[Int]]) : Option[Seq[Int]] = {
     assert (arguments.size == 1)
-    val arg = arguments(0).map(_.toChar).mkString
-    for (s <- t(arg)) yield s.toSeq.map(_.toInt)
+    val arg = arguments(0)
+    for (s <- t(arg)) yield s
   }
 
   def apply(argumentConstraints : Seq[Seq[Automaton]],

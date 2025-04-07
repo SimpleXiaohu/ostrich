@@ -283,7 +283,6 @@ class CostEnrichedAutomaton extends CostEnrichedAutomatonBase {
 
   def toDot(suffix: String): Unit = {
     if (!ParikhUtil.debugOpt) return
-    states.zipWithIndex.toMap
     val outdir = "dot" + File.separator + LocalDate.now().toString
     new File(outdir).mkdirs()
     val dotfile = outdir + File.separator + s"${suffix}.dot"

@@ -46,13 +46,13 @@ object ReplaceAllCEPreOp {
   // pre-images of x = replaceall(y, e, u)
   def apply(pattern: CostEnrichedAutomaton, replacement: Seq[Char]) = {
     val transducer = buildTransducer(pattern)
-    new ReplaceCEPreOp(transducer, replacement)
+    new ReplaceAllCEPreOp(transducer, replacement)
   }
 
   // pre-images of x = replaceall(y, u1, u2)
   def apply(pattern: Seq[Char], replacement: Seq[Char]) = {
     val transducer = buildTransducer(pattern)
-    new ReplaceCEPreOp(transducer, replacement)
+    new ReplaceAllCEPreOp(transducer, replacement)
   }
 
   private def buildTransducer(aut: CostEnrichedAutomaton) : CETransducer = {
@@ -264,9 +264,8 @@ class ReplaceAllCEPreOp(tran: CETransducer, replacement: Seq[Char]) extends CEPr
   }
 
   def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
-     for (s <- tran(arguments(0).map(_.toChar).mkString,
-                   replacement.mkString))
-    yield s.toSeq.map(_.toInt)
+     for (s <- tran(arguments(0), replacement.map(_.toInt)))
+    yield s
   }
 
   override def toString(): String = "ReplaceAllCEPreOp"

@@ -439,9 +439,10 @@ class CETransducer {
 
     for ((ps, pt, vec) <- epsilonPairs)
       addEpsilonWithVec(ps, pt, vec)
-    preImageAut.removeDeadStates().toDot("CETransducerPreImage")
-    aut.toDot("CETransducerRes")
     preImageAut.removeDeadStates()
+    preImageAut.toDot("CETransducerPreImage")
+    aut.toDot("CETransducerRes")
+    preImageAut
   }
 
   /** Apply the transducer to the input, replacing any internal characters with the given string.
@@ -514,6 +515,7 @@ class CETransducer {
           val opOut = tOp.op match {
             case NOP      => Seq()
             case Internal => internal
+            case ToSeqConnector => Seq(seqSplitter)
             // treat as delete
             case Plus(_) => Seq()
           }

@@ -79,6 +79,7 @@ import ostrich.cesolver.preop.sequence.SeqConcatCEPreOp
 import ostrich.cesolver.preop.sequence.SeqExtractCEPreOp
 import ostrich.cesolver.preop.sequence.SeqWriteCEPreOp
 import ostrich.cesolver.preop.sequence.SeqFilterCEPreOp
+import ostrich.cesolver.preop.sequence.MatchAllLeftLongestCEPreOp
 
 
 object ParikhExploration {
@@ -129,6 +130,11 @@ class ParikhExploration(
     for ((t, _) <- initialConstraints)
       strTerms += t
     val newFunApps = funApps.map {
+      case (op: MatchAllLeftLongestCEPreOp, Seq(str), resSeq) => {
+        strTerms += str
+        seqTerms += resSeq
+        (op, Seq(str), resSeq)
+      }
       case (op: SeqFilterCEPreOp, Seq(seq), resSeq) => {
         seqTerms ++= Seq(seq, resSeq)
         (op, Seq(seq), resSeq)

@@ -56,6 +56,7 @@ import ostrich.cesolver.preop.sequence.SeqExtractCEPreOp
 import ostrich.cesolver.preop.sequence.SeqWriteCEPreOp
 import ostrich.cesolver.preop.sequence.SeqFilterCEPreOp
 import ostrich.cesolver.automata.CEBasicOperations
+import ostrich.cesolver.preop.sequence.MatchAllLeftLongestCEPreOp
 
 /** Class for mapping string constraints to string functions.
   */
@@ -70,7 +71,8 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
     seq_len,
     seq_extract,
     seq_write,
-    seq_filter
+    seq_filter,
+    seq_match_all
   }
 
   private val regexExtractor = theory.RegexExtractor(facts.predConj)
@@ -89,6 +91,19 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
       // FIXME: not consider edge cases yet, for example, the sequence is empty
       // SOME IDEAS: add a # before the initial state of StringSeqAutomaton, the 
       // the empty string "" is empty sequence [] and the string "#" is [""]
+      case FunPred(`seq_match_all`) => {
+        for (regex <- regexAsTerm(a(1))) yield {
+          val op = () => {
+            val aut = ceAutDatabase
+              .regex2Automaton(regex)
+              .asInstanceOf[CostEnrichedAutomaton]
+            val minimize = CEBasicOperations.minimizeHopcroft(aut)
+            MatchAllLeftLongestCEPreOp(minimize)
+          }
+          (op, List(a(0)), a(2))
+        }
+      }
+
       case FunPred(`seq_filter`) => {
         for (regex <- regexAsTerm(a(1))) yield {
           val op = () => {

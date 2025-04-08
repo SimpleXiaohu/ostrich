@@ -30,10 +30,12 @@ import ostrich.cesolver.util.TermGenerator
 import ap.parser.IExpression
 import ap.basetypes.IdealInt
 import ostrich.cesolver.automata.StringSeqAutomaton
+import ostrich.cesolver.automata.StringSeqAutomaton.seqSplitter
 import ap.terfor.Term
 import ap.terfor.linearcombination.LinearCombination
 import ostrich.cesolver.preop.CEPreOp
 import ostrich.cesolver.util.ParikhUtil.ConstInteger
+import ostrich.cesolver.util.ParikhUtil.debugPrintln
 
 trait SeqNthCEPreOpBase extends CEPreOp {
   override def toString = "seqNthCEPreOp"
@@ -44,7 +46,7 @@ trait SeqNthCEPreOpBase extends CEPreOp {
     val sequence = StringSeqAutomaton.toSeqResult(arguments.head)
     val index    = arguments(1)(0)
     // always add the arraySplitter in the end
-    Some(sequence(index) :+ StringSeqAutomaton.seqSplitter)
+    Some(seqSplitter +: sequence(index) :+ seqSplitter)
   }
 }
 
@@ -69,21 +71,16 @@ class SeqNthCEPreOpConcrete(index: Int) extends SeqNthCEPreOpBase {
     val emptyUpdate = Seq.fill(res.registers.length)(0)
     val argAut      = new StringSeqAutomaton
     val old2new     = res.states.map(s => (s, argAut.newState())).toMap
+    val afterIdxS   = argAut.newState()
+    argAut.addTransition(afterIdxS, sigmaLabel, afterIdxS, emptyUpdate)
+    argAut.addSeqElementConnect(afterIdxS, afterIdxS, emptyUpdate)
+    argAut.setAccept(afterIdxS, true)
     // the sequence elements before the index
     val preStates = Seq.fill(index)(argAut.newState())
     for (i <- 0 until index)
-      argAut.addTransition(
-        preStates(i),
-        sigmaLabel,
-        preStates(i),
-        emptyUpdate
-      )
+      argAut.addTransition(preStates(i), sigmaLabel, preStates(i), emptyUpdate)
     for (i <- 0 until index - 1)
-      argAut.addSeqElementConnect(
-        preStates(i),
-        preStates(i + 1),
-        emptyUpdate
-      )
+      argAut.addSeqElementConnect(preStates(i), preStates(i + 1), emptyUpdate)
     // the sequence element at the index
     for ((s, l, t, v) <- res.transitions)
       argAut.addTransition(old2new(s), l, old2new(t), v)
@@ -91,27 +88,14 @@ class SeqNthCEPreOpConcrete(index: Int) extends SeqNthCEPreOpBase {
     for (s <- res.acceptingStates) {
       val acceptState = old2new(s)
       argAut.setAccept(acceptState, true)
-      argAut.addTransition(acceptState, sigmaLabel, acceptState, emptyUpdate)
-      argAut.addSeqElementConnect(acceptState, acceptState, emptyUpdate)
+      argAut.addSeqElementConnect(acceptState, afterIdxS, emptyUpdate)
     }
-    // connect the states of before, at, and after the index
+    // connect the states of before and at the index
     if (index == 0) {
-      argAut.addSeqElementConnect(
-        argAut.initialState,
-        old2new(res.initialState),
-        emptyUpdate
-      )
+      argAut.addSeqElementConnect(argAut.initialState, old2new(res.initialState), emptyUpdate)
     } else {
-      argAut.addSeqElementConnect(
-        preStates(index - 1),
-        old2new(res.initialState),
-        emptyUpdate
-      )
-      argAut.addSeqElementConnect(
-        argAut.initialState,
-        preStates(0),
-        emptyUpdate
-      )
+      argAut.addSeqElementConnect(argAut.initialState, preStates(0), emptyUpdate)
+      argAut.addSeqElementConnect(preStates(index - 1), old2new(res.initialState), emptyUpdate)
     }
     argAut.registers = res.registers
     argAut.regsRelation = res.regsRelation
@@ -151,60 +135,63 @@ class SeqNthCEPreOp(index: ITerm) extends SeqNthCEPreOpBase {
     )
     indexGeqZeroAut.addSeqElementConnect(afterIdxS, afterIdxS, emptyUpdate)
     indexGeqZeroAut.setAccept(afterIdxS, true)
-    for (s <- res.acceptingStates) {
+    for (s <- res.acceptingStates)
       indexGeqZeroAut.setAccept(old2new(s), true)
-    }
     // connect the states of before, at, and after the index
-    indexGeqZeroAut.addSeqElementConnect(
-      indexGeqZeroAut.initialState,
-      beforeIdxS,
-      emptyUpdate
-    )
+    // indexGeqZeroAut.addSeqElementConnect(
+    //   indexGeqZeroAut.initialState,
+    //   beforeIdxS,
+    //   emptyUpdate
+    // )
+    indexGeqZeroAut.initialState = beforeIdxS
     indexGeqZeroAut.addSeqElementConnect(
       beforeIdxS,
       old2new(res.initialState),
       addOneUpdate
     )
-    for (s <- res.acceptingStates) 
+    for (s <- res.acceptingStates)
       indexGeqZeroAut.addSeqElementConnect(
         old2new(s),
         afterIdxS,
         emptyUpdate
       )
-    indexGeqZeroAut.regsRelation = res.regsRelation & newRegister === index
+    indexGeqZeroAut.regsRelation = res.regsRelation & newRegister === index + 1
     indexGeqZeroAut.registers = res.registers :+ newRegister
-    // index = 0 
-    val indexEqZeroAut = new StringSeqAutomaton
-    val emptyUpdate2 = Seq.fill(res.registers.length)(0)
-    val old2new2 = res.states.map(s => (s, indexEqZeroAut.newState())).toMap
-    for ((s, l, t, v) <- res.transitions)
-      indexEqZeroAut.addTransition(old2new2(s), l, old2new2(t), v)
-    // the sequence elements after the index
-    val afterIdxS2 = indexEqZeroAut.newState()
-    indexEqZeroAut.addTransition(
-      afterIdxS2,
-      sigmaLabel,
-      afterIdxS2,
-      emptyUpdate2
-    )
-    indexEqZeroAut.addSeqElementConnect(afterIdxS2, afterIdxS2, emptyUpdate2)
-    indexEqZeroAut.setAccept(afterIdxS2, true)
-    for (s <- res.acceptingStates) 
-      indexEqZeroAut.setAccept(old2new2(s), true)
-    // connect the states of before, at, and after the index
-    indexEqZeroAut.addSeqElementConnect(
-      indexEqZeroAut.initialState,
-      old2new2(res.initialState),
-      emptyUpdate2
-    )
-    for (s <- res.acceptingStates) 
-      indexEqZeroAut.addSeqElementConnect(
-        old2new2(s),
-        afterIdxS2,
-        emptyUpdate2
-      )
-    indexEqZeroAut.regsRelation = res.regsRelation & index === 0
-    indexEqZeroAut.registers = res.registers
-    (Iterator(Seq(indexGeqZeroAut), Seq(indexEqZeroAut)), Seq())
+    val preImage = indexGeqZeroAut & StringSeqAutomaton.makeAnySeq()
+    // index = 0
+    // val indexEqZeroAut = new StringSeqAutomaton
+    // val emptyUpdate2   = Seq.fill(res.registers.length)(0)
+    // val old2new2       = res.states.map(s => (s, indexEqZeroAut.newState())).toMap
+    // for ((s, l, t, v) <- res.transitions)
+    //   indexEqZeroAut.addTransition(old2new2(s), l, old2new2(t), v)
+    // // the sequence elements after the index
+    // val afterIdxS2 = indexEqZeroAut.newState()
+    // indexEqZeroAut.addTransition(
+    //   afterIdxS2,
+    //   sigmaLabel,
+    //   afterIdxS2,
+    //   emptyUpdate2
+    // )
+    // indexEqZeroAut.addSeqElementConnect(afterIdxS2, afterIdxS2, emptyUpdate2)
+    // indexEqZeroAut.setAccept(afterIdxS2, true)
+    // for (s <- res.acceptingStates)
+    //   indexEqZeroAut.setAccept(old2new2(s), true)
+    // // connect the states of before, at, and after the index
+    // indexEqZeroAut.addSeqElementConnect(
+    //   indexEqZeroAut.initialState,
+    //   old2new2(res.initialState),
+    //   emptyUpdate2
+    // )
+    // for (s <- res.acceptingStates)
+    //   indexEqZeroAut.addSeqElementConnect(
+    //     old2new2(s),
+    //     afterIdxS2,
+    //     emptyUpdate2
+    //   )
+    // indexEqZeroAut.regsRelation = res.regsRelation & index === 0
+    // indexEqZeroAut.registers = res.registers
+    // (Iterator(Seq(indexGeqZeroAut), Seq(indexEqZeroAut)), Seq())
+    preImage.asInstanceOf[StringSeqAutomaton].toDot("seqnth")
+    (Iterator(Seq(preImage)), Seq())
   }
 }

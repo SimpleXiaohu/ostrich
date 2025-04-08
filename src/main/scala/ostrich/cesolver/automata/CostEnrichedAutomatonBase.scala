@@ -135,7 +135,7 @@ abstract class CostEnrichedAutomatonBase extends Automaton {
     incomingTransitions(s).map{case (from, _, vec) => (from, vec)}.toSet
 
   def transitions: Iterable[(State, TLabel, State, Seq[Int])] = {
-    for (from <- states; (to, lbl, vec) <- outgoingTransitions(from))
+    for (from <- states; (to, lbl, vec) <- outgoingTransitions(from); if states.toSet.contains(to))
       yield (from, lbl, to, vec)
   }
 
@@ -185,7 +185,7 @@ abstract class CostEnrichedAutomatonBase extends Automaton {
 
   def regsRelation_=(f: IFormula) = _regsRelation = f
 
-  def removeDeadStates() : CostEnrichedAutomatonBase = {this}
+  def removeDeadStates() : Unit = {}
 
   /////////////////////////////
 

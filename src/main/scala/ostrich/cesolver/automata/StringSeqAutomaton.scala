@@ -120,34 +120,45 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
   def previousSeqElements(s: State): Iterable[(State, Update)] = seqElementConnectReverse.get(s)
     .getOrElse(Set()).filter(outs => states.toSet.contains(outs._1))
 
-  override def removeDeadStates(): StringSeqAutomaton = {
-    val result    = new StringSeqAutomaton
-    val old2new   = states.map(s => s -> result.newState()).toMap
-    val workstack = new MStack[State]
-    val visited   = new MHashSet[State]
-    for (s <- acceptingStates) {
-      workstack.push(s)
-      result.setAccept(old2new(s), true)
-    }
-    while (workstack.nonEmpty) {
-      val state = workstack.pop()
-      visited += state
-      // automaton transitions
-      for ((from, l, v) <- incomingTransitions(state)) {
-        if (!visited.contains(from)) { workstack.push(from) }
-        result.addTransition(old2new(from), l, old2new(state), v)
-      }
-      // seq element connections
-      for ((from, v) <- previousSeqElements(state)) {
-        if (!visited.contains(from)) { workstack.push(from) }
-        result.addSeqElementConnect(old2new(from), old2new(state), v)
-      }
-    }
-    result.initialState = old2new(initialState)
+  override def removeDeadStates(): Unit = {
+    val bwdReach = new MHashSet[State]
+    val worklist = new MStack[State]
 
-    result.registers = registers
-    result.regsRelation = regsRelation
-    result
+    for (s <- acceptingStates) {
+      bwdReach += s
+      worklist.push(s)
+    }
+    while (worklist.nonEmpty) {
+      val state = worklist.pop()
+      for ((from, _, _) <- incomingTransitions(state) if !bwdReach.contains(from)) {
+        bwdReach += from
+        worklist.push(from)
+      }
+      for ((from, _) <- previousSeqElements(state) if !bwdReach.contains(from)) {
+        bwdReach += from
+        worklist.push(from)
+      }
+    }
+    _state2transtions.retain((s, _) => bwdReach.contains(s))
+    _state2incomingTranstions.retain((s, _) => bwdReach.contains(s))
+    seqElementConnect.retain((s, _) => bwdReach.contains(s))
+    seqElementConnectReverse.retain((s, _) => bwdReach.contains(s))
+    _state2transtions.foreach{
+      case (_, targetSet) =>
+        targetSet.retain(t => bwdReach.contains(t._1))
+    }
+    _state2incomingTranstions.foreach{
+      case (_, targetSet) =>
+        targetSet.retain(t => bwdReach.contains(t._1))
+    }
+    seqElementConnect.foreach{
+      case (_, targetSet) =>
+        targetSet.retain(t => bwdReach.contains(t._1))
+    }
+    seqElementConnectReverse.foreach{
+      case (_, targetSet) =>
+        targetSet.retain(t => bwdReach.contains(t._1))
+    }
   }
 
   // Get all connectors
@@ -207,6 +218,7 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
       connectSimplify(Seq(this.regsRelation, thatAut.regsRelation), IBinJunctor.And)
     result.registers = this.registers ++ thatAut.registers
     result.removeDeadStates()
+    result
   }
 
   def ++ (that: StringSeqAutomaton): StringSeqAutomaton = {

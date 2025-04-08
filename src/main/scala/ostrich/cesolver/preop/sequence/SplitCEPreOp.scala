@@ -36,6 +36,7 @@ import scala.collection.mutable.ArrayBuffer
 import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ap.parser.smtlib.Absyn.Term
 import ap.parser.IBinJunctor
+import ostrich.cesolver.util.ParikhUtil.sumVec
 
 object SplitCEPreOp {
   def apply(splitString: String): SplitCEPreOp = new SplitCEPreOp(splitString)
@@ -62,32 +63,28 @@ class SplitCEPreOp(splitString: String) extends CEPreOp {
         aut.addSeqElementConnect(old2new(s), old2new(t), v)
       for (s <- res.acceptingStates)
         aut.setAccept(old2new(s), true)
-      // deleteFirstConnector and store the update
-      var firstUpdate = Seq.fill(res.registers.length)(0)
-      for ((s, v) <- res.nextSeqElements(res.initialState)) {
-        aut.initialState = old2new(s)
-        firstUpdate = v
+      // delete first connector and store the update
+      if (res.isAccept(res.initialState)) {
+        aut.setAccept(aut.initialState, true)
       }
-      aut.registers = Seq.fill(res.registers.length)(TermGenerator().registerTerm)
-      import IExpression._
-      val updateF = connectSimplify(
-        (aut.registers zip firstUpdate zip res.registers).map {
-          case ((r, u), oldR) => r + u === oldR
-        },
-        IBinJunctor.And
-      )
-      aut.regsRelation = connectSimplify(
-        Seq(res.regsRelation, updateF),
-        IBinJunctor.And
-      )
+      for ((s, v) <- res.nextSeqElements(res.initialState)) {
+        for ((to, lbl, nextv) <- res.outgoingTransitions(s)) {
+          aut.addTransition(aut.initialState, lbl, old2new(to), sumVec(v, nextv))
+        }
+        for ((to, nextv) <- res.nextSeqElements(s)) {
+          aut.addSeqElementConnect(aut.initialState, old2new(to), sumVec(v, nextv))
+        }
+      }
+      aut.registers = res.registers
+      aut.regsRelation = res.regsRelation
+      aut.removeDeadStates()
       aut
     }
     deleteFirstConnectorAut.toDot("deleteFirstConnectorAut")
     res.toDot("splitCEPreOp_res")
     val internals = deleteFirstConnectorAut.connectors()
     val argAut = tran.preImage(deleteFirstConnectorAut, internals)
-    debugPrintln("internals: " + internals)
-    argAut.toDot("splitCEPreOp_" + '"' + splitString + '"')
+    argAut.toDot(s"""splitCEPreOp_${splitString}_preImage""")
     (Iterator(Seq(argAut)), Seq())
   }
 

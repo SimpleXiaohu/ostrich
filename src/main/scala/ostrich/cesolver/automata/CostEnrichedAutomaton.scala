@@ -247,6 +247,33 @@ class CostEnrichedAutomaton extends CostEnrichedAutomatonBase {
     None
   }
 
+  override def removeDeadStates(): Unit = {
+    val bwdReach = new MHashSet[State]
+    val worklist = new MStack[State]
+
+    for (s <- acceptingStates) {
+      bwdReach += s
+      worklist.push(s)
+    }
+    while (worklist.nonEmpty) {
+      val state = worklist.pop()
+      for ((from, _, _) <- incomingTransitions(state) if !bwdReach.contains(from)) {
+        bwdReach += from
+        worklist.push(from)
+      }
+    }
+    _state2transtions.retain((s, _) => bwdReach.contains(s))
+    _state2incomingTranstions.retain((s, _) => bwdReach.contains(s))
+    _state2transtions.foreach{
+      case (_, targetSet) =>
+        targetSet.retain(t => bwdReach.contains(t._1))
+    }
+    _state2incomingTranstions.foreach{
+      case (_, targetSet) =>
+        targetSet.retain(t => bwdReach.contains(t._1))
+    }
+  }
+
   override def clone(): CostEnrichedAutomaton = {
     val newAut = new CostEnrichedAutomaton
     val old2new = states.map(s => s -> newAut.newState()).toMap

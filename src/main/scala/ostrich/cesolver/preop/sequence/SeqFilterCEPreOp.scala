@@ -23,7 +23,7 @@ object SeqFilterCEPreOp {
   }
 
   /**
-    * Build a transducer that filters out the string elements that are matched by the pattern
+    * Build a transducer that returns a sequence of all elements that are matched by the pattern
     */
   private def buildFilterTransducer(aut: CostEnrichedAutomaton): CETransducer = {
 
@@ -35,6 +35,7 @@ object SeqFilterCEPreOp {
     val notMatch = ceTran.newState
     ceTran.initialState = notMatch
     val beginMatch = ceTran.newState
+    val failedMatch = ceTran.newState
     val compAut = CEBasicOperations.complementWithoutRegs(aut)
     val old2newMatch = aut.states.map(s => s -> ceTran.newState).toMap
     val old2newNotMatch = compAut.states.map(s => s -> ceTran.newState).toMap
@@ -44,28 +45,32 @@ object SeqFilterCEPreOp {
     val completeLabels = labelEnumerator.enumDisjointLabelsComplete
     ceTran.setAccept(notMatch, true)
     // notMatch --> sigma --> notMatch
-    ceTran.addTransition(notMatch, sigmaLabel, copy, notMatch)        
-    // notMatch --> # --> beginMatch
+    ceTran.addTransition(notMatch, sigmaLabel, nop, notMatch)        
+    // notMatch --> # --> beginMatch | failedMatch
     ceTran.addCTransition(notMatch, outConnector, beginMatch)
+    ceTran.addCTransition(notMatch, nop, failedMatch)
     // nondeterministicly choose to match or not match
     ceTran.addETransition(beginMatch, nop, old2newMatch(aut.initialState))
-    ceTran.addETransition(beginMatch, nop, old2newNotMatch(compAut.initialState))
+    ceTran.addETransition(failedMatch, nop, old2newNotMatch(compAut.initialState))
     // successful match
     for ((s, l, t, _) <- aut.transitions) {
-        ceTran.addTransition(old2newMatch(s), l, nop, old2newMatch(t))
+        ceTran.addTransition(old2newMatch(s), l, copy, old2newMatch(t))
     }
     for (s <- aut.acceptingStates) {
       ceTran.setAccept(old2newMatch(s), true)  
       // match again
-      ceTran.addCTransition(old2newMatch(s), nop, beginMatch)
+      ceTran.addCTransition(old2newMatch(s), outConnector, beginMatch)
+      ceTran.addCTransition(old2newMatch(s), nop, failedMatch)
     }
     // failed match
     for ((s,l,t, _) <- compAut.transitions) {
-      ceTran.addTransition(old2newNotMatch(s), l, copy, old2newNotMatch(t))
+      ceTran.addTransition(old2newNotMatch(s), l, nop, old2newNotMatch(t))
     }
     for (s <- compAut.acceptingStates) {
       ceTran.setAccept(old2newNotMatch(s), true)
+      // match again
       ceTran.addCTransition(old2newNotMatch(s), outConnector, beginMatch)
+      ceTran.addCTransition(old2newNotMatch(s), nop, failedMatch)
     }
     
     ceTran.toDot("seqfilter")
@@ -79,11 +84,13 @@ class SeqFilterCEPreOp(tran: CETransducer) extends CEPreOp {
 
   def apply(argumentConstraints: Seq[Seq[Automaton]], resultConstraint: Automaton): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
     val rc = resultConstraint.asInstanceOf[StringSeqAutomaton]
-    (Iterator(Seq(tran.preImage(rc, Seq(), true))), Seq())
+    val preImage = tran.preImage(rc, Seq(), true)
+    preImage.toDot("seqfilter_preimage")
+    (Iterator(Seq(preImage)), Seq())
   }
 
   def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
     for (s <- tran(arguments(0)))
-      yield s
+      yield s :+ StringSeqAutomaton.seqSplitter
   }
 }

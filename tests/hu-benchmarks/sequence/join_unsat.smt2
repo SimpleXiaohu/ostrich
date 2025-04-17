@@ -4,7 +4,7 @@
 
 (assert (= (seq.unit "abcd") (seq.at a1 i)))
 (assert (< 3 i))
-(assert (= x (str.join a1 "a")))
+(assert (= x (seq.join a1 "a")))
 (assert (> 7 (str.len x)))
 
 

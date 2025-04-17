@@ -8,7 +8,7 @@
 (assert (= a1 (seq.write a2 j "bb")))
 (assert (= a3 (seq.write a1 i "aa")))
 (assert (not(= i j)))
-(assert (= x (str.join a3 "3")))
+(assert (= x (seq.join a3 "3")))
 (assert (> 5 (str.len x)))
 
 

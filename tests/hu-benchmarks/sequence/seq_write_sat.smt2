@@ -7,7 +7,7 @@
 
 (assert (= a1 (seq.write a2 1 "bb")))
 (assert (= a3 (seq.write a1 i "aa")))
-(assert (= x (str.join a3 "3")))
+(assert (= x (seq.join a3 "3")))
 (assert (> 4 (str.len x)))
 
 

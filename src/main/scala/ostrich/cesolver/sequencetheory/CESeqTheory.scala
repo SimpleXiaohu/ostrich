@@ -22,12 +22,13 @@ import ap.parser.IFormula
 import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ap.theories.TheoryRegistry
 import ostrich.cesolver.stringtheory.CEStringTheory
+import ap.theories.strings.StringTheory
 
 /** The theory to handle the sequence of strings.
   */
 class CESeqTheory extends SeqTheory {
 
-  val ElementSort: Sort = new OstrichStringSort
+  val ElementSort: Sort = CEStringTheory.stringSort
 
   object SeqSort extends Sort {
     import ap.parser.IExpression._
@@ -138,5 +139,8 @@ class CESeqTheory extends SeqTheory {
   }
 
   override def isSoundForSat(theories: Seq[Theory], config: Theory.SatSoundnessConfig.Value): Boolean = true
+
+  TheoryRegistry register this
+  SeqTheory register this
 
 }

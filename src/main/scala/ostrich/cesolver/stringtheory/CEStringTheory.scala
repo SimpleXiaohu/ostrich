@@ -63,14 +63,29 @@ import ap.theories.sequences.SeqTheory
 import ostrich.cesolver.sequencetheory.ConcreteSeqDatabase
 import ostrich.OstrichStringEncoder
 import ostrich.cesolver.util.ParikhUtil.log
+import ap.types.ProxySort
+import ap.parser.ITerm
+import scala.collection.{Map => GMap}
+
 
 ////////////////////////////////////////////////////////////////////////////////
+object CEStringTheory {
+  class CEStringSort extends OstrichStringTheory.OstrichStringSort {
+    private var theory : CEStringTheory = null
+
+    protected[ostrich] def setTheory(_theory : CEStringTheory) : Unit =
+      theory = _theory
+  }
+  val stringSort = new CEStringSort
+}
 
 /**
  * The entry class of the Ostrich string solver.
  */
 class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
-    extends OstrichStringTheory(transducers, flags) {
+    extends {
+      override val StringSort = CEStringTheory.stringSort
+    } with OstrichStringTheory(transducers, flags) {
 
   private val ceSolver = new CESolver(this, flags)
   private val equalityPropagator = new OstrichEqualityPropagator(this)

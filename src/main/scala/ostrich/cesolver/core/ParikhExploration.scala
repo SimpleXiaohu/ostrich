@@ -234,9 +234,15 @@ class ParikhExploration(
       termCout(res) = termCout.getOrElse(res, 0)
       for (arg <- args) termCout(arg) = termCout.getOrElse(arg, 0) + 1
     }
-    // all integer Terms are topologically sorted to the head
+    // all integer terms are topologically sorted to the head
     for (t <- integerTerms)
       termCout(t) = 0
+    // all concrete terms are topologically sorted to the head
+    for (t <- (strTerms ++ seqTerms)) {
+      val internalT = InputAbsy2Internal(t, TermOrder.EMPTY)
+      if (strDatabase isConcrete internalT) 
+        termCout(t) = 0
+    }
 
     while (topSortedFunApps.nonEmpty) {
       val (_topSortedFunApps, _remFunApps) = remFunApps partition {

@@ -138,11 +138,6 @@ class SeqNthCEPreOp(index: ITerm) extends SeqNthCEPreOpBase {
     for (s <- res.acceptingStates)
       indexGeqZeroAut.setAccept(old2new(s), true)
     // connect the states of before, at, and after the index
-    // indexGeqZeroAut.addSeqElementConnect(
-    //   indexGeqZeroAut.initialState,
-    //   beforeIdxS,
-    //   emptyUpdate
-    // )
     indexGeqZeroAut.initialState = beforeIdxS
     indexGeqZeroAut.addSeqElementConnect(
       beforeIdxS,
@@ -158,39 +153,6 @@ class SeqNthCEPreOp(index: ITerm) extends SeqNthCEPreOpBase {
     indexGeqZeroAut.regsRelation = res.regsRelation & newRegister === index + 1
     indexGeqZeroAut.registers = res.registers :+ newRegister
     val preImage = indexGeqZeroAut & StringSeqAutomaton.makeAnySeq()
-    // index = 0
-    // val indexEqZeroAut = new StringSeqAutomaton
-    // val emptyUpdate2   = Seq.fill(res.registers.length)(0)
-    // val old2new2       = res.states.map(s => (s, indexEqZeroAut.newState())).toMap
-    // for ((s, l, t, v) <- res.transitions)
-    //   indexEqZeroAut.addTransition(old2new2(s), l, old2new2(t), v)
-    // // the sequence elements after the index
-    // val afterIdxS2 = indexEqZeroAut.newState()
-    // indexEqZeroAut.addTransition(
-    //   afterIdxS2,
-    //   sigmaLabel,
-    //   afterIdxS2,
-    //   emptyUpdate2
-    // )
-    // indexEqZeroAut.addSeqElementConnect(afterIdxS2, afterIdxS2, emptyUpdate2)
-    // indexEqZeroAut.setAccept(afterIdxS2, true)
-    // for (s <- res.acceptingStates)
-    //   indexEqZeroAut.setAccept(old2new2(s), true)
-    // // connect the states of before, at, and after the index
-    // indexEqZeroAut.addSeqElementConnect(
-    //   indexEqZeroAut.initialState,
-    //   old2new2(res.initialState),
-    //   emptyUpdate2
-    // )
-    // for (s <- res.acceptingStates)
-    //   indexEqZeroAut.addSeqElementConnect(
-    //     old2new2(s),
-    //     afterIdxS2,
-    //     emptyUpdate2
-    //   )
-    // indexEqZeroAut.regsRelation = res.regsRelation & index === 0
-    // indexEqZeroAut.registers = res.registers
-    // (Iterator(Seq(indexGeqZeroAut), Seq(indexEqZeroAut)), Seq())
     preImage.asInstanceOf[StringSeqAutomaton].toDot("seqnth")
     (Iterator(Seq(preImage)), Seq())
   }

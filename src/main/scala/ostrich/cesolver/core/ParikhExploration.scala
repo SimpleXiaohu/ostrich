@@ -238,10 +238,16 @@ class ParikhExploration(
     for (t <- integerTerms)
       termCout(t) = 0
     // all concrete terms are topologically sorted to the head
-    for (t <- (strTerms ++ seqTerms)) {
+    for (t <- strTerms) {
       val internalT = InputAbsy2Internal(t, TermOrder.EMPTY)
       if (strDatabase isConcrete internalT) 
         termCout(t) = 0
+    }
+    for (t <- seqTerms) {
+      val internalT = InputAbsy2Internal(t, TermOrder.EMPTY)
+      if (seqDatabase isConcrete internalT) {
+        termCout(t) = 0
+      } 
     }
 
     while (topSortedFunApps.nonEmpty) {
@@ -335,7 +341,10 @@ class ParikhExploration(
     for (t <- seqTerms)
       constraintStores.put(t, newStoreArray(t))
 
+    ParikhUtil.debugPrintln("string terms: " + strTerms)
+    ParikhUtil.debugPrintln("sequence terms: " + seqTerms)
     for ((t, aut) <- allInitialConstraints) {
+      ParikhUtil.debugPrintln("Adding initial constraint: " + t + " = " + aut)
       constraintStores(t).assertConstraint(aut) match {
         case Some(_) =>
           // println(conflictSet)

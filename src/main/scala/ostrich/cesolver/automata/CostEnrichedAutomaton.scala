@@ -295,7 +295,7 @@ class CostEnrichedAutomaton extends CostEnrichedAutomatonBase {
     }
 
     s"""
-    automaton A${hashCode()} {
+    CEAutomaton ${hashCode()} {
       init ${initialState};
       ${transitions.toSeq
         .sortBy(_._1)

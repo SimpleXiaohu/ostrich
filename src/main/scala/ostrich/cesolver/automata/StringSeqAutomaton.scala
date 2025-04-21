@@ -391,6 +391,22 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
     writer.closeAfterWrite(strbuilder.toString())
   }
 
+  override def toString(): String = {
+    val strbuilder = new StringBuilder
+    strbuilder.append(s"StringSeqAutomaton: ${this.hashCode()}\n")
+    strbuilder.append(s"Initial state: ${initialState}\n")
+    strbuilder.append(s"Accepting states: ${acceptingStates.mkString(",")}\n")
+    strbuilder.append("Transitions:\n")
+    for ((s, (left, right), t, vec) <- transitions.toSeq.sortBy(_._1))
+      strbuilder.append(s"${s} -> ${t} [${left.toInt},${right.toInt}] ${vec}\n")
+    for (
+      (s, targetsWithVec) <- seqElementConnect;
+      (t, vec)            <- targetsWithVec
+    )
+      strbuilder.append(s"${s} -> ${t} [seqConnector] (${vec})]\n")
+    strbuilder.toString()
+  }
+
   // non-implemented methods /////////////////////////////////
   def |(that: ostrich.automata.Automaton): ostrich.automata.Automaton = ???
   def apply(word: Seq[Int]): Boolean                                  = ???

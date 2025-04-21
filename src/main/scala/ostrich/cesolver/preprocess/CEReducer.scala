@@ -140,17 +140,28 @@ class CEReducer(
       logger
     ) { a =>
       a.pred match {
-        // MAYBE WRONG HERE. We assume that seq_cons is only used to construct concrete sequences
+        // // MAYBE WRONG HERE. We assume that seq_cons is only used to construct concrete sequences
         case `_seq_empty` =>
-          a.last === seqDatabase.iTerm2Id(IFunApp(seq_empty, List()))
+          seqDatabase.storeTerm(
+            a.last,
+            IFunApp(seq_empty, List())
+          )
+          a
         case `_seq_cons` =>
-          a.last === seqDatabase.iTerm2Id(IFunApp(seq_cons, List(IIntLit(a(0).constant), IIntLit(a(1).constant))))
-        case `_seq_unit` => a(0) match {
-          case LinearCombination.Constant(IdealInt(i)) =>
-             a.last === seqDatabase.iTerm2Id(IFunApp(seq_unit, List(strDatabase.id2ITerm(i))))
-          case _ => a
-        }
-          a.last === seqDatabase.iTerm2Id(IFunApp(seq_unit, List(strDatabase.id2ITerm(a(0).constant.intValue))))
+          seqDatabase.storeTerm(
+            a.last,
+            IFunApp(seq_cons, List(IIntLit(a(0).constant), IIntLit(a(1).constant)))
+          )
+          a
+        case `_seq_unit` =>
+          a(0) match {
+            case LinearCombination.Constant(IdealInt(i)) =>
+              val id = seqDatabase.storeTerm(
+                a.last,
+                IFunApp(seq_unit, List(strDatabase.id2ITerm(i)))
+              )
+          }
+          a
 
         case `_str_empty` =>
           a.last === strDatabase.iTerm2Id(IFunApp(str_empty, List()))

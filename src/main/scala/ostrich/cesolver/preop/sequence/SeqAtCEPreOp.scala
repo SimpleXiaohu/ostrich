@@ -35,5 +35,11 @@ class SeqAtCEPreOp(index: ITerm) extends CEPreOp{
     seqNthCEPreOp.apply(argumentConstraints, stringRes)
   }
 
-  def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = seqNthCEPreOp.eval(arguments)
+  def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = seqNthCEPreOp.eval(arguments) match {
+    case None => None
+    case Some(str) =>
+      // convert the string to a sequence, i.e., "a" to ["a"]
+      val splitter = StringSeqAutomaton.seqSplitter
+      Some(splitter +: str :+ splitter) 
+  }
 }

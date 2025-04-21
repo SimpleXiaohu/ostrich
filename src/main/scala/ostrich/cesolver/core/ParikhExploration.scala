@@ -1,45 +1,33 @@
-/**
- * This file is part of Ostrich, an SMT solver for strings.
- * Copyright (c) 2018-2023 Denghang Hu, Matthew Hague, Philipp Ruemmer. All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- * 
- * * Redistributions of source code must retain the above copyright notice, this
- *   list of conditions and the following disclaimer.
- * 
- * * Redistributions in binary form must reproduce the above copyright notice,
- *   this list of conditions and the following disclaimer in the documentation
- *   and/or other materials provided with the distribution.
- * 
- * * Neither the name of the authors nor the names of their
- *   contributors may be used to endorse or promote products derived from
- *   this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
- * OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+/** This file is part of Ostrich, an SMT solver for strings. Copyright (c) 2018-2023 Denghang Hu, Matthew Hague, Philipp
+  * Ruemmer. All rights reserved.
+  *
+  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
+  * following conditions are met:
+  *
+  * * Redistributions of source code must retain the above copyright notice, this list of conditions and the following
+  * disclaimer.
+  *
+  * * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
+  * following disclaimer in the documentation and/or other materials provided with the distribution.
+  *
+  * * Neither the name of the authors nor the names of their contributors may be used to endorse or promote products
+  * derived from this software without specific prior written permission.
+  *
+  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+  */
 
 package ostrich.cesolver.core
 
 import ostrich.preop.PreOp
 import ostrich.StrDatabase
 import ap.SimpleAPI
-import scala.collection.mutable.{
-  ArrayBuffer,
-  HashMap => MHashMap,
-  HashSet => MHashSet
-}
+import scala.collection.mutable.{ArrayBuffer, HashMap => MHashMap, HashSet => MHashSet}
 import ostrich.cesolver.automata.BricsAutomatonWrapper
 import ostrich.cesolver.preop.LengthCEPreOp
 import ap.basetypes.IdealInt
@@ -81,7 +69,6 @@ import ostrich.cesolver.preop.sequence.SeqWriteCEPreOp
 import ostrich.cesolver.preop.sequence.SeqFilterCEPreOp
 import ostrich.cesolver.preop.sequence.MatchAllLeftLongestCEPreOp
 
-
 object ParikhExploration {
 
   case class TermConstraint(t: ITerm, aut: CostEnrichedAutomatonBase)
@@ -92,11 +79,11 @@ object ParikhExploration {
       extends Exception
 
   private def isStringResultOp(op: PreOp): Boolean = op match {
-    case _: LengthCEPreOp  | 
-         _: IndexOfCEPreOp | 
-         _: SeqLenCEPreOp => false
+    case _: LengthCEPreOp |
+        _: IndexOfCEPreOp |
+        _: SeqLenCEPreOp => false
 
-    case _                 => true
+    case _ => true
   }
 }
 
@@ -123,60 +110,54 @@ class ParikhExploration(
 
   private val fresh2origin = new MHashMap[ITerm, ITerm]
 
-  private val (integerTerms, strTerms, seqTerms, sortedFunApps, ignoredApps) = {
-    val strTerms = MHashSet[ITerm]()
+  private val (integerTerms, strTerms, seqTerms, concreteTerms, sortedFunApps, ignoredApps) = {
+    val strTerms     = MHashSet[ITerm]()
     val integerTerms = MHashSet[ITerm]()
-    val seqTerms = MHashSet[ITerm]()
+    val seqTerms     = MHashSet[ITerm]()
+    val concreteTerms     = MHashSet[ITerm]()
     for ((t, _) <- initialConstraints)
       strTerms += t
     val newFunApps = funApps.map {
-      case (op: MatchAllLeftLongestCEPreOp, Seq(str), resSeq) => {
+      case (op: MatchAllLeftLongestCEPreOp, Seq(str), resSeq) =>
         strTerms += str
         seqTerms += resSeq
         (op, Seq(str), resSeq)
-      }
-      case (op: SeqFilterCEPreOp, Seq(seq), resSeq) => {
+      case (op: SeqFilterCEPreOp, Seq(seq), resSeq) =>
         seqTerms ++= Seq(seq, resSeq)
         (op, Seq(seq), resSeq)
-      }
-      case (op: SeqWriteCEPreOp, Seq(seq, index, str), resSeq) => {
+      case (op: SeqWriteCEPreOp, Seq(seq, index, str), resSeq) =>
         val freshIndex = termGen.intTerm
         integerTerms += freshIndex
         fresh2origin += (freshIndex -> index)
         seqTerms ++= Seq(seq, resSeq)
         strTerms += str
         (op, Seq(seq, freshIndex, str), resSeq)
-      }
-      case (op: SeqExtractCEPreOp, Seq(seq, start, length), resSeq) => {
+      case (op: SeqExtractCEPreOp, Seq(seq, start, length), resSeq) =>
         val freshStart = termGen.intTerm
-        val freshLen = termGen.intTerm
-        integerTerms ++= Seq(freshStart,freshLen)
-        seqTerms ++= Seq(seq,resSeq)
+        val freshLen   = termGen.intTerm
+        integerTerms ++= Seq(freshStart, freshLen)
+        seqTerms ++= Seq(seq, resSeq)
         fresh2origin += (freshStart -> start)
-        fresh2origin += (freshLen -> length)
+        fresh2origin += (freshLen   -> length)
         (op, Seq(seq, freshStart, freshLen), resSeq)
-      }
-      case (op: SeqConcatCEPreOp, Seq(seq1, seq2), resSeq) => {
+      case (op: SeqConcatCEPreOp, Seq(seq1, seq2), resSeq) =>
         seqTerms ++= Seq(seq1, seq2, resSeq)
         (op, Seq(seq1, seq2), resSeq)
-      }
-      case (op: LengthCEPreOp, Seq(str), length) => {
+      case (op: LengthCEPreOp, Seq(str), length) =>
         val freshLen = termGen.intTerm
         integerTerms += freshLen
         fresh2origin += (freshLen -> length)
         strTerms += str
         (op, Seq(str), freshLen)
-      }
-      case (op: SubStringCEPreOp, Seq(str, start, length), subStr) => {
+      case (op: SubStringCEPreOp, Seq(str, start, length), subStr) =>
         val freshStart = termGen.intTerm
-        val freshLen = termGen.intTerm
-        integerTerms ++= Seq(freshStart,freshLen)
+        val freshLen   = termGen.intTerm
+        integerTerms ++= Seq(freshStart, freshLen)
         strTerms ++= Seq(str, subStr)
         fresh2origin += (freshStart -> start)
-        fresh2origin += (freshLen -> length)
+        fresh2origin += (freshLen   -> length)
         (op, Seq(str, freshStart, freshLen), subStr)
-      }
-      case (op: IndexOfCEPreOp, Seq(str, subStr, start), index) => {
+      case (op: IndexOfCEPreOp, Seq(str, subStr, start), index) =>
         val freshStart = termGen.intTerm
         val freshIndex = termGen.intTerm
         integerTerms ++= Seq(freshStart, freshIndex)
@@ -184,49 +165,42 @@ class ParikhExploration(
         fresh2origin += (freshStart -> start)
         fresh2origin += (freshIndex -> index)
         (op, Seq(str, subStr, freshStart), freshIndex)
-      }
       // sequence operations
-      case (op: JoinCEPreOp, Seq(seq), resStr) => {
+      case (op: JoinCEPreOp, Seq(seq), resStr) =>
         strTerms += resStr
         seqTerms += seq
         (op, Seq(seq), resStr)
-      }
-      case (op: SplitCEPreOp, Seq(splitedStr), resSeq) => {
+      case (op: SplitCEPreOp, Seq(splitedStr), resSeq) =>
         strTerms += splitedStr
         seqTerms += resSeq
         (op, Seq(splitedStr), resSeq)
-      }
-      case (op: SeqNthCEPreOpBase, Seq(seq, index), resStr) => {
+      case (op: SeqNthCEPreOpBase, Seq(seq, index), resStr) =>
         val freshIndex = termGen.intTerm
         seqTerms += seq
         integerTerms += freshIndex
         fresh2origin += (freshIndex -> index)
         strTerms += resStr
         (op, Seq(seq, freshIndex), resStr)
-      }
-      case (op: SeqAtCEPreOp, Seq(seq, index), resSeq) => {
+      case (op: SeqAtCEPreOp, Seq(seq, index), resSeq) =>
         val freshIndex = termGen.intTerm
         integerTerms += freshIndex
         fresh2origin += (freshIndex -> index)
-        seqTerms ++= Seq(seq,resSeq)
+        seqTerms ++= Seq(seq, resSeq)
         (op, Seq(seq, freshIndex), resSeq)
-      }
-      case (op: SeqLenCEPreOp, Seq(seq), resLen) => {
+      case (op: SeqLenCEPreOp, Seq(seq), resLen) =>
         val freshLen = termGen.intTerm
         fresh2origin += (freshLen -> resLen)
         seqTerms += seq
         integerTerms += freshLen
         (op, Seq(seq), freshLen)
-      }
-      case (op, strs, resstr) => {
+      case (op, strs, resstr) =>
         strTerms ++= (strs :+ resstr)
         (op, strs, resstr)
-      }
     }
 
-    val sortedApps = new ArrayBuffer[(Seq[(PreOp, Seq[ITerm])], ITerm)]
-    var ignoredApps = new ArrayBuffer[(PreOp, Seq[ITerm], ITerm)]
-    var remFunApps = newFunApps
+    val sortedApps       = new ArrayBuffer[(Seq[(PreOp, Seq[ITerm])], ITerm)]
+    var ignoredApps      = new ArrayBuffer[(PreOp, Seq[ITerm], ITerm)]
+    var remFunApps       = newFunApps
     var topSortedFunApps = newFunApps
 
     val termCout = new MHashMap[ITerm, Int]
@@ -237,17 +211,21 @@ class ParikhExploration(
     // all integer terms are topologically sorted to the head
     for (t <- integerTerms)
       termCout(t) = 0
-    // all concrete terms are topologically sorted to the head
+    // get concrete terms
     for (t <- strTerms) {
       val internalT = InputAbsy2Internal(t, TermOrder.EMPTY)
-      if (strDatabase isConcrete internalT) 
-        termCout(t) = 0
+      if (strDatabase isConcrete internalT) {
+        concreteTerms += t
+      }
     }
     for (t <- seqTerms) {
       val internalT = InputAbsy2Internal(t, TermOrder.EMPTY)
-      if (seqDatabase isConcrete internalT) {
-        termCout(t) = 0
-      } 
+      if (seqDatabase isConcrete internalT) 
+        concreteTerms += t
+    }
+    // all concrete terms are topologically sorted to the head
+    for (t <- concreteTerms) {
+      termCout(t) = 0
     }
 
     while (topSortedFunApps.nonEmpty) {
@@ -260,9 +238,8 @@ class ParikhExploration(
           (apps map (app => (app._1, app._2)), res)
         }
       }
-      for ((op, args, res) <- _topSortedFunApps) {
+      for ((op, args, res) <- _topSortedFunApps)
         for (arg <- args) termCout(arg) = termCout(arg) - 1
-      }
       topSortedFunApps = _topSortedFunApps
       remFunApps = _remFunApps
     }
@@ -272,14 +249,14 @@ class ParikhExploration(
       Console.err.println("WARNING: cyclic definitions found, ignoring " + ignoredApps)
     }
 
-    (integerTerms, strTerms, seqTerms, sortedApps, ignoredApps)
+    (integerTerms, strTerms, seqTerms, concreteTerms, sortedApps, ignoredApps)
   }
 
-  private val freshIntegerTermFormula = fresh2origin.map({
+  private val freshIntegerTermFormula = fresh2origin.map {
     case (fresh, origin) => fresh === origin
-  }).foldLeft(IExpression.Boolean2IFormula(true))(_ & _)
+  }.foldLeft(IExpression.Boolean2IFormula(true))(_ & _)
 
-  for ((apps, res) <- sortedFunApps) {
+  for ((apps, res) <- sortedFunApps)
     Console.withOut(Console.err) {
 
       def term2String(t: ITerm) =
@@ -289,7 +266,7 @@ class ParikhExploration(
             case Some(str) => "\"" + str + "\""
             case None      => t.toString()
           }
-        } else if(integerTerms contains t) {
+        } else if (integerTerms contains t) {
           fresh2origin(t).toString()
         } else {
           t.toString()
@@ -302,7 +279,6 @@ class ParikhExploration(
             "(" + (args map (term2String _) mkString ", ") + ")"
         )
     }
-  }
 
   val nonTreeLikeApps =
     sortedFunApps exists { case (ops, t) =>
@@ -326,12 +302,11 @@ class ParikhExploration(
   val leafTerms =
     allTerms filter { case t => !(resultTerms contains t) }
 
-  private def trivialConflict: ConflictSet = {
+  private def trivialConflict: ConflictSet =
     for (
-      t <- leafTerms.toSeq;
+      t   <- leafTerms.toSeq;
       aut <- constraintStores(t).getCompleteContents
     ) yield TermConstraint(t, aut)
-  }
 
   private val constraintStores = new MHashMap[ITerm, ParikhStore]
 
@@ -356,7 +331,7 @@ class ParikhExploration(
     val funAppList =
       (for (
         (apps, res) <- sortedFunApps;
-        (op, args) <- apps
+        (op, args)  <- apps
       )
         yield (op, args, res)).toList
 
@@ -381,8 +356,8 @@ class ParikhExploration(
   ): MHashMap[ITerm, Either[IdealInt, Seq[Int]]] = {
     for ((op, args, res) <- apps) {
       val argValues = args map {
-        case arg if (model contains arg) =>  model(arg)
-        case Const(value) => Left(value)
+        case arg if (model contains arg) => model(arg)
+        case Const(value)                => Left(value)
       }
       val argsValues: Seq[Seq[Int]] = argValues map {
         case Left(value)   => Seq(value.intValueSafe)
@@ -440,50 +415,51 @@ class ParikhExploration(
   def dfExplore(apps: List[(PreOp, Seq[ITerm], ITerm)]): ConflictSet =
     apps match {
 
-      case List() => {
-
+      case List() =>
         // we are finished and just have to construct a model
-        val model = new MHashMap[ITerm, Either[IdealInt, Seq[Int]]]
+        val model    = new MHashMap[ITerm, Either[IdealInt, Seq[Int]]]
         val intModel = new MHashMap[ITerm, IdealInt]
 
         // check linear arith consistency of final automata
         val backendSolver =
           flags.ceaBackend match {
             case Baseline => new BaselineSolver(flags, lProver)
-            case Unary =>    new UnaryBasedSolver(flags, lProver, freshIntegerTermFormula)
+            case Unary    => new UnaryBasedSolver(flags, lProver, freshIntegerTermFormula)
           }
 
         backendSolver.setIntegerTerm(integerTerms.toSet)
-        for (t <- leafTerms; if (strTerms++seqTerms contains t)) {
+        // add leaf constraints
+        for (t <- leafTerms; if (strTerms ++ seqTerms contains t))
           backendSolver.addConstraint(t, constraintStores(t).getCompleteContents)
-        }
+        // add concrete constraints
+        for (t <- concreteTerms)
+          backendSolver.addConstraint(t, constraintStores(t).getCompleteContents)
+
         val res = backendSolver.measureTimeSolve
 
         ParikhUtil.log("Result from CEA backend: " + res)
 
         res.getStatus match {
-          case ProverStatus.Sat => {
+          case ProverStatus.Sat =>
             // model of leaf term
-            for ((t, v) <- res.getModel) {
+            for ((t, v) <- res.getModel)
               v match {
-                case IntValue(i)    => 
+                case IntValue(i) =>
                   model.put(t, Left(i))
                   intModel.put(t, i)
                 case StringValue(s) => model.put(t, Right(s))
               }
-            }
-            val intAssignment = 
+            val intAssignment =
               (for ((IConstant(c), value) <- intModel)
-               yield (c, IIntLit(value))).toMap
+                yield (c, IIntLit(value))).toMap
 
-            for (i <- integerTerms) {
+            for (i <- integerTerms)
               i match {
                 case _ if !model.contains(i) => // lia, update the lia result valut in model
                   for (IIntLit(value) <- List(SimplifyingConstantSubstVisitor(i, intAssignment)))
                     model.put(i, Left(value))
                 case _ => // do nothing
               }
-            }
 
             // model of result term
             val allFunApps: Iterator[(PreOp, Seq[ITerm], ITerm)] =
@@ -499,18 +475,15 @@ class ParikhExploration(
                 InputAbsy2Internal(term, lProver.order) -> value
               }.toMap
             )
-          }
           case ProverStatus.Unsat => return trivialConflict
-          case _ => 
+          case _ =>
             ParikhUtil.log("One search branch is unknow: " + res.getStatus)
             maybeUnknown = true
             return trivialConflict
         }
 
-      }
-      case (op, args, res) :: otherApps => {
+      case (op, args, res) :: otherApps =>
         dfExploreOp(op, args, res, constraintStores(res).getContents, otherApps)
-      }
     }
 
   def dfExploreOp(
@@ -523,7 +496,7 @@ class ParikhExploration(
     case List() =>
       dfExplore(nextApps)
 
-    case resAut :: otherAuts => {
+    case resAut :: otherAuts =>
       ap.util.Timeout.check
 
       val argConstraints =
@@ -533,7 +506,7 @@ class ParikhExploration(
 
       // compute pre image for op
       val (newConstraintsIt, argDependencies) =
-        measure("pre-op") { op(argConstraints, resAut) }
+        measure("pre-op")(op(argConstraints, resAut))
 
       // iterate over pre image
       while (newConstraintsIt.hasNext) {
@@ -555,33 +528,29 @@ class ParikhExploration(
               newConstraints += TermConstraint(a, cea)
               // add pre image aut to its constraint store, check consistency
               constraintStores(a).assertConstraint(cea) match {
-                case Some(conflict) => {
+                case Some(conflict) =>
                   consistent = false
 
                   assert(!Seqs.disjointSeq(newConstraints, conflict))
                   collectedConflicts ++=
                     (conflict.iterator filterNot newConstraints)
-                }
                 case None => // nothing
               }
             }
 
           if (consistent) {
             val conflict = dfExploreOp(op, args, res, otherAuts, nextApps)
-            if (
-              !conflict.isEmpty && Seqs.disjointSeq(newConstraints, conflict)
-            ) {
+            if (!conflict.isEmpty && Seqs.disjointSeq(newConstraints, conflict)) {
               // we can jump back, because the found conflict does not depend
               // on the considered function application
               return conflict
             }
             collectedConflicts ++= (conflict.iterator filterNot newConstraints)
           }
-        } finally {
+        } finally
           // pop
           for (a <- args)
             constraintStores(a).pop
-        }
       }
 
       // generate conflict set
@@ -590,16 +559,15 @@ class ParikhExploration(
           (for (aut <- constraintStores(res).getCompleteContents)
             yield TermConstraint(res, aut))
       else
-      collectedConflicts += TermConstraint(res, resAut)
+        collectedConflicts += TermConstraint(res, resAut)
 
       collectedConflicts ++=
         (for (
           (t, auts) <- args.iterator zip argDependencies.iterator;
-          aut <- auts.iterator
+          aut       <- auts.iterator
         )
           yield TermConstraint(t, aut.asInstanceOf[CostEnrichedAutomatonBase]))
       collectedConflicts.toSeq
-    }
   }
 
   // need to be cost-enriched constraints
@@ -639,14 +607,14 @@ class ParikhExploration(
         true
       };
       (_, args) <- argsSeq;
-      arg <- args
+      arg       <- args
     )
       coveredTerms += arg
 
     initialConstraints ++ additionalConstraints
   }
 
-  // set to true when eagerly product 
+  // set to true when eagerly product
   protected val needCompleteContentsForConflicts: Boolean = true
   protected def newStore(t: ITerm): ParikhStore =
     new ParikhStore(t, flags)

@@ -45,8 +45,7 @@ trait SeqNthCEPreOpBase extends CEPreOp {
   def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
     val sequence = StringSeqAutomaton.toSeqResult(arguments.head)
     val index    = arguments(1)(0)
-    // always add the arraySplitter in the end
-    Some(seqSplitter +: sequence(index) :+ seqSplitter)
+    Some(sequence(index))
   }
 }
 

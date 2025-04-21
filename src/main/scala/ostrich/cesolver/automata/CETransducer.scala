@@ -283,8 +283,15 @@ class CETransducer {
 
     def addEpsilonWithVec(ps: State, pt: State, vec: Seq[Int]) {
       if (preImageAut.isAccept(pt)) preImageAut.setAccept(ps, true)
-      for ((to, lbl, pVec) <- preImageAut.outgoingTransitions(pt))
+      for ((to, lbl, pVec) <- preImageAut.outgoingTransitions(pt)) {
         preImageAut.addTransition(ps, lbl, to, sumVec(vec, pVec))
+      }
+      if (isSeqPreImage) {
+        val seqAut = preImageAut.asInstanceOf[StringSeqAutomaton]
+        for ((to, pVec) <- seqAut.nextSeqElements(pt)) {
+          seqAut.addSeqElementConnect(ps, to, sumVec(vec, pVec))
+        }
+      }
     }
 
     def reachStates(ts: State, as: State): Unit = {

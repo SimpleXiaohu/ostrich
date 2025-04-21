@@ -73,8 +73,8 @@ object SeqFilterCEPreOp {
       ceTran.addCTransition(old2newNotMatch(s), nop, failedMatch)
     }
     
-    ceTran.toDot("seqfilter")
-    aut.toDot("seqfilter_pattern")
+    ceTran.toDot("seqfilterTran")
+    aut.toDot("seqfilterTran_pattern")
     ceTran
   }
 }

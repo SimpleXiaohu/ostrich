@@ -35,7 +35,6 @@ import ap.terfor.Term
 import ap.terfor.linearcombination.LinearCombination
 import ostrich.cesolver.preop.CEPreOp
 import ostrich.cesolver.util.ParikhUtil.ConstInteger
-import ostrich.cesolver.util.ParikhUtil.debugPrintln
 
 trait SeqNthCEPreOpBase extends CEPreOp {
   override def toString = "seqNthCEPreOp"

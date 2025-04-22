@@ -316,10 +316,7 @@ class ParikhExploration(
     for (t <- seqTerms)
       constraintStores.put(t, newStoreArray(t))
 
-    ParikhUtil.debugPrintln("string terms: " + strTerms)
-    ParikhUtil.debugPrintln("sequence terms: " + seqTerms)
     for ((t, aut) <- allInitialConstraints) {
-      ParikhUtil.debugPrintln("Adding initial constraint: " + t + " = " + aut)
       constraintStores(t).assertConstraint(aut) match {
         case Some(_) =>
           // println(conflictSet)

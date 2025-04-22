@@ -10,10 +10,8 @@ import ostrich.cesolver.automata.StringSeqInitFinalAutomaton.setInitial
 import ap.parser.IBinJunctor
 import ostrich.cesolver.automata.CostEnrichedAutomaton
 import ap.parser.IExpression._
-import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ostrich.cesolver.automata.BricsAutomatonWrapper
 import ostrich.cesolver.util.TermGenerator
-import ostrich.OFlags.debug
 
 
 object SeqWriteCEPreOp {
@@ -62,14 +60,12 @@ class SeqWriteCEPreOp(i: ITerm) extends CEPreOp {
     import StringSeqAutomaton._
 
     val res = resultConstraint.asInstanceOf[StringSeqAutomaton]
-    res.toDot("res" + i)
 
     val preimages = (for (s <- res.states) yield {
       // before the index
       val pre = (seqLengthPreimage(i) & setFinal(res, Set(s))).asInstanceOf[StringSeqAutomaton]
       // in and after the index
       val after = setInitial(res, s)
-      var debugIdx2 = 0
       for (s <- after.states) yield {
         // in the index
         val in    = (oneAnyStrSeqAut() & setFinal(after, Set(s))).asInstanceOf[StringSeqAutomaton]
@@ -131,20 +127,10 @@ class SeqWriteCEPreOp(i: ITerm) extends CEPreOp {
             Seq(res.regsRelation, updateResRegisterF),
             IBinJunctor.And
           )
-          debugPrintln("firstUpdate: " + firstUpdate)
-          debugPrintln("strIn.regsRelation: " + strIn.regsRelation)
-          preImageIn.toDot("preImageIn" + i + "_" + debugIdx2)
-          pre.toDot("pre" + i + "_" + debugIdx2)
-          post.toDot("post" + i + "_" + debugIdx2)
-          strIn.toDot("strIn" + i + "_" + debugIdx2)
-          (preImage).toDot("preImage" + i + "_" + debugIdx2)
-          debugIdx2 += 1
           Seq(preImage, BricsAutomatonWrapper.makeAnyString(), strIn)
         }
       }
     }).flatten
-    for (preimage <- preimages)
-      debugPrintln("preimage: " + preimage.size)
     (preimages.filterNot(_.isEmpty).iterator, Seq())
   }
 

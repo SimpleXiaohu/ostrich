@@ -143,19 +143,19 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
     _state2incomingTranstions.retain((s, _) => bwdReach.contains(s))
     seqElementConnect.retain((s, _) => bwdReach.contains(s))
     seqElementConnectReverse.retain((s, _) => bwdReach.contains(s))
-    _state2transtions.foreach{
+    _state2transtions.foreach {
       case (_, targetSet) =>
         targetSet.retain(t => bwdReach.contains(t._1))
     }
-    _state2incomingTranstions.foreach{
+    _state2incomingTranstions.foreach {
       case (_, targetSet) =>
         targetSet.retain(t => bwdReach.contains(t._1))
     }
-    seqElementConnect.foreach{
+    seqElementConnect.foreach {
       case (_, targetSet) =>
         targetSet.retain(t => bwdReach.contains(t._1))
     }
-    seqElementConnectReverse.foreach{
+    seqElementConnectReverse.foreach {
       case (_, targetSet) =>
         targetSet.retain(t => bwdReach.contains(t._1))
     }
@@ -221,11 +221,11 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
     result
   }
 
-  def ++ (that: StringSeqAutomaton): StringSeqAutomaton = {
-    val result  = new StringSeqAutomaton
-    val preEmptyUpdate = Seq.fill(this.registers.size)(0)
+  def ++(that: StringSeqAutomaton): StringSeqAutomaton = {
+    val result          = new StringSeqAutomaton
+    val preEmptyUpdate  = Seq.fill(this.registers.size)(0)
     val postEmptyUpdate = Seq.fill(that.registers.size)(0)
-    val old2new = (this.states ++ that.states).map(s => s -> result.newState()).toMap
+    val old2new         = (this.states ++ that.states).map(s => s -> result.newState()).toMap
     // copy this automaton
     result.initialState = old2new(this.initialState)
     for (s <- this.states) {
@@ -243,7 +243,7 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
         result.addSeqElementConnect(old2new(s), old2new(to), preEmptyUpdate ++ v)
     }
     // connect them
-    for (before    <- this.acceptingStates)
+    for (before <- this.acceptingStates)
       result.addEpsilon(old2new(before), old2new(that.initialState))
     result.registers = this.registers ++ that.registers
     result.regsRelation =
@@ -364,7 +364,7 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
     states.zipWithIndex.toMap
     val outdir = "dot" + File.separator + LocalDate.now().toString
     new File(outdir).mkdirs()
-    val dotfile    = outdir + File.separator + s"${suffix}.dot"
+    val dotfile    = outdir + File.separator + s"${ParikhUtil.escapeString(suffix)}.dot"
     val writer     = new DotWriter(dotfile.toString)
     val strbuilder = new StringBuilder
     strbuilder.append(s"""

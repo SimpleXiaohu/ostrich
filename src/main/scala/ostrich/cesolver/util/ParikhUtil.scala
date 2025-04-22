@@ -1,41 +1,29 @@
-/** This file is part of Ostrich, an SMT solver for strings. Copyright (c) 2023
-  * Denghang Hu. All rights reserved.
+/** This file is part of Ostrich, an SMT solver for strings. Copyright (c) 2023 Denghang Hu. All rights reserved.
   *
-  * Redistribution and use in source and binary forms, with or without
-  * modification, are permitted provided that the following conditions are met:
+  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the
+  * following conditions are met:
   *
-  * * Redistributions of source code must retain the above copyright notice,
-  * this list of conditions and the following disclaimer.
+  * * Redistributions of source code must retain the above copyright notice, this list of conditions and the following
+  * disclaimer.
   *
-  * * Redistributions in binary form must reproduce the above copyright notice,
-  * this list of conditions and the following disclaimer in the documentation
-  * and/or other materials provided with the distribution.
+  * * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the
+  * following disclaimer in the documentation and/or other materials provided with the distribution.
   *
-  * * Neither the name of the authors nor the names of their contributors may be
-  * used to endorse or promote products derived from this software without
-  * specific prior written permission.
+  * * Neither the name of the authors nor the names of their contributors may be used to endorse or promote products
+  * derived from this software without specific prior written permission.
   *
-  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-  * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-  * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-  * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-  * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-  * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-  * POSSIBILITY OF SUCH DAMAGE.
+  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+  * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   */
 
 package ostrich.cesolver.util
 
-import scala.collection.mutable.{
-  HashMap => MHashMap,
-  HashSet => MHashSet,
-  ArrayStack,
-  ArrayBuffer
-}
+import scala.collection.mutable.{HashMap => MHashMap, HashSet => MHashSet, ArrayStack, ArrayBuffer}
 import ostrich.cesolver.automata.CostEnrichedAutomatonBase
 
 import ap.basetypes.IdealInt
@@ -56,8 +44,8 @@ object ParikhUtil {
     }
   }
 
-  type State = CostEnrichedAutomatonBase#State
-  type TLabel = CostEnrichedAutomatonBase#TLabel
+  type State                 = CostEnrichedAutomatonBase#State
+  type TLabel                = CostEnrichedAutomatonBase#TLabel
   type TransitionWitoutLabel = (State, State, Seq[Int])
 
   var debugOpt, logOpt = false
@@ -85,14 +73,14 @@ object ParikhUtil {
       trans: TransitionWitoutLabel,
       transTimes: Map[TransitionWitoutLabel, Int]
   ): Boolean = {
-    val visited = new Stack[TransitionWitoutLabel]
+    val visited  = new Stack[TransitionWitoutLabel]
     val todoList = new Stack[TransitionWitoutLabel]
     todoList.push(trans)
     visited.push(trans)
     while (!todoList.isEmpty) {
       val currentTrans = todoList.pop()
-      val (_, to, _) = currentTrans
-      for ((nextTo, v) <- aut.outgoingTransitionsWithoutLabel(to)) {
+      val (_, to, _)   = currentTrans
+      for ((nextTo, v) <- aut.outgoingTransitionsWithoutLabel(to))
         if (
           transTimes.contains((to, nextTo, v)) && !visited.contains(
             (to, nextTo, v)
@@ -101,7 +89,6 @@ object ParikhUtil {
           todoList.push((to, nextTo, v))
           visited.push((to, nextTo, v))
         }
-      }
     }
     transTimes.keySet.forall(visited.contains(_))
   }
@@ -114,7 +101,7 @@ object ParikhUtil {
       .map { case (tran, value) => (tran, value.intValue) }
       .filterNot(_._2 == 0)
     val todoList = new ArrayStack[(State, Map[TransitionWitoutLabel, Int], Seq[Char])]
-    val visited = new MHashSet[(State, Map[TransitionWitoutLabel, Int])]
+    val visited  = new MHashSet[(State, Map[TransitionWitoutLabel, Int])]
     todoList.push((aut.initialState, transTimes, ""))
     visited.add((aut.initialState, transTimes))
     while (!todoList.isEmpty) {
@@ -135,13 +122,13 @@ object ParikhUtil {
           }
           .reverse
       for ((t, l, v) <- sortedByVecSum) {
-        val currentTrans = (state, t, v)
+        val currentTrans   = (state, t, v)
         val currTransTimes = lastTransTimes(currentTrans) - 1
         val newTransTimes =
           if (currTransTimes > 0)
             lastTransTimes.updated(currentTrans, currTransTimes)
           else lastTransTimes - currentTrans
-        val newWord = word :+ l._1
+        val newWord  = word :+ l._1
         val newState = t
         if (
           !visited.contains(
@@ -177,9 +164,8 @@ object ParikhUtil {
       p !! findingTransTimesF
       p.checkSat(false)
       val status = measure("findAcceptedWordByTransTimesComplete") {
-        while (p.getStatus(100) == SimpleAPI.ProverStatus.Running) {
+        while (p.getStatus(100) == SimpleAPI.ProverStatus.Running)
           ap.util.Timeout.check
-        }
         p.???
       }
       status match {
@@ -205,7 +191,7 @@ object ParikhUtil {
       auts: Seq[CostEnrichedAutomatonBase],
       registersModel: Map[ITerm, Int]
   ): Option[Seq[Int]] = {
-    val aut = auts.reduce((a1,a2) => (a1 & a2).asInstanceOf[CostEnrichedAutomatonBase])
+    val aut = auts.reduce((a1, a2) => (a1 & a2).asInstanceOf[CostEnrichedAutomatonBase])
     val registersLogrithmSum =
       registersModel.map(_._2.intValue).filter(_ > 0).map(math.log(_)).sum
     if (registersLogrithmSum > ParikhUtil.MIN_LOG_REG_SUM_PARIKH)
@@ -248,7 +234,7 @@ object ParikhUtil {
 
     val preStatesWithTTerm = new MHashMap[State, MHashSet[(State, ITerm)]]
     for ((from, to, vec) <- aut.transitionsWithOutLabel) {
-      val set = preStatesWithTTerm.getOrElseUpdate(to, new MHashSet)
+      val set   = preStatesWithTTerm.getOrElseUpdate(to, new MHashSet)
       val tTerm = transtion2Term(from, to, vec)
       set += ((from, tTerm))
     }
@@ -287,13 +273,12 @@ object ParikhUtil {
 
     // connection //////////////////////////////////////////////////////////////////
     val zVarInitFormulas = aut.transitionsWithOutLabel.map {
-      case (from, to, vec) => {
+      case (from, to, vec) =>
         val tTerm = transtion2Term(from, to, vec)
         if (from == aut.initialState)
           (zTerm(from) === 0)
         else
           (tTerm === 0) | (zTerm(from) > 0)
-      }
     }
 
     val connectFormulas = aut.states.map {
@@ -328,14 +313,13 @@ object ParikhUtil {
       aut.transitionsWithOutLabel.foreach { case (from, to, vec) =>
         val trasitionTerm = transtion2Term(from, to, vec)
         vec.zipWithIndex.foreach {
-          case (veci, i) if veci > 0 => {
+          case (veci, i) if veci > 0 =>
             val update =
               registerUpdateMap.getOrElseUpdate(
                 aut.registers(i),
                 new ArrayBuffer[ITerm]
               )
             update.append(trasitionTerm * veci)
-          }
           case _ => // do nothing
         }
       }
@@ -345,12 +329,10 @@ object ParikhUtil {
     val registerUpdateFormula =
       connectSimplify(
         for (
-          r <- aut.registers;
+          r      <- aut.registers;
           update <- Some(registerUpdateMap.getOrElse(r, Seq(i(0))))
         )
-          yield {
-            r === update.reduce { (t1, t2) => t1 + t2 }
-          },
+          yield r === update.reduce((t1, t2) => t1 + t2),
         IBinJunctor.And
       )
 
@@ -370,8 +352,7 @@ object ParikhUtil {
     parikhImage
   }
 
-  /** find all states vec triple (s, t, v) such that s ---(str,v)--> t and v is
-    * the sum of updates on the path
+  /** find all states vec triple (s, t, v) such that s ---(str,v)--> t and v is the sum of updates on the path
     */
   def partition(
       aut: CostEnrichedAutomatonBase,
@@ -389,7 +370,7 @@ object ParikhUtil {
       strStack = strStack.tail
       pairs =
         for (
-          (s, t, vec) <- pairs;
+          (s, t, vec)             <- pairs;
           (tNext, lNext, vecNext) <- aut.outgoingTransitions(t);
           if labelOps.labelContains(currentChar, lNext)
         ) yield (s, tNext, sumVec(vec, vecNext))
@@ -398,51 +379,54 @@ object ParikhUtil {
   }
 
   // sum of two Seq
-  def sumVec(v1: Seq[Int], v2: Seq[Int]): Seq[Int] = {
+  def sumVec(v1: Seq[Int], v2: Seq[Int]): Seq[Int] =
     v1.zip(v2).map { case (x, y) => x + y }
-  }
 
   def getImage(
       aut: CostEnrichedAutomatonBase,
       states: Set[State],
       lbl: TLabel
-  ): Set[State] = {
+  ): Set[State] =
     (for (
       s <- states; (t, lblAut, _) <- aut.outgoingTransitions(s);
       if aut.LabelOps.labelsOverlap(lbl, lblAut)
     )
       yield t).toSet
-  }
 
   // check if the aut only accepts empty string
-  def isEmptyString(aut: CostEnrichedAutomatonBase): Boolean = {
+  def isEmptyString(aut: CostEnrichedAutomatonBase): Boolean =
     aut.isAccept(aut.initialState) && aut.transitions.isEmpty
-  }
 
-  def debugPrintln(s: Any) = {
+  def debugPrintln(s: Any) =
     if (debugOpt)
       println("Debug: " + s)
-  }
 
-  def todo(s: Any, urgency: Int = 1) = {
+  def todo(s: Any, urgency: Int = 1) =
     if (logOpt)
       println(
         s"TODO (urgency level $urgency):" + s + "  (lower level is more urgent)"
       )
-  }
-  def bug(s: Any) = {
+  def bug(s: Any) =
     println("Bug:" + s)
-  }
 
-  def log(s: Any) = {
+  def log(s: Any) =
     if (logOpt)
       println("Log: " + s)
-  }
 
   def throwWithStackTrace(e: Throwable) = {
     if (debugOpt)
       e.printStackTrace
     throw e
-    
   }
+
+  // ignore the characters not allowed in file name
+  def escapeString(input: String): String =
+    input.flatMap {
+      case '\\' => "ignore"
+      case '/'  => "ignore"
+      case '\n' => "ignore"
+      case '\t' => "ignore"
+      case '\r' => "ignore"
+      case c    => c.toString
+    }
 }

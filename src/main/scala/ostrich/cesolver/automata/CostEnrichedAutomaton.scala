@@ -312,7 +312,7 @@ class CostEnrichedAutomaton extends CostEnrichedAutomatonBase {
     if (!ParikhUtil.debugOpt) return
     val outdir = "dot" + File.separator + LocalDate.now().toString
     new File(outdir).mkdirs()
-    val dotfile = outdir + File.separator + s"${suffix}.dot"
+    val dotfile = outdir + File.separator + s"${ParikhUtil.escapeString(suffix)}.dot"
     val writer = new DotWriter(dotfile.toString)
     val strbuilder = new StringBuilder
     strbuilder.append(s"""

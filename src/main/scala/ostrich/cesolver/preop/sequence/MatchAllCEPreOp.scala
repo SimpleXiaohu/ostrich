@@ -10,7 +10,6 @@ import ostrich.automata.Transducer._
 import ostrich.cesolver.automata.StringSeqAutomaton
 import ostrich.cesolver.util.ParikhUtil.{getImage, todo}
 import ostrich.cesolver.automata.CETLabelEnumerator
-import ostrich.cesolver.util.ParikhUtil.debugPrintln
 
 object MatchAllLeftLongestCEPreOp {
   def apply(pattern: CostEnrichedAutomaton): CEPreOp = {
@@ -98,7 +97,6 @@ object MatchAllLeftLongestCEPreOp {
             val noreachImg = getImage(aut, noreach, lbl)
 
             val dontMatch = getState(NotMatching, noreachImg ++ initImg)
-            debugPrintln("dontMatch: " + dontMatch)
             ceTran.addTransition(ts, lbl, nop, dontMatch)
 
             if (!initImg.isEmpty) {
@@ -106,7 +104,6 @@ object MatchAllLeftLongestCEPreOp {
               val newConnectorBeforeMatch = ceTran.newState()
               ceTran.addETransition(ts, outSeqConnector, newConnectorBeforeMatch)
               ceTran.addTransition(newConnectorBeforeMatch, lbl, copy, newMatch)
-              debugPrintln("newMatch_init: " + newMatch)
             }
 
             if (initImg.exists(aut.isAccept(_))) {
@@ -114,7 +111,6 @@ object MatchAllLeftLongestCEPreOp {
               val newConnectorBeforeMatch = ceTran.newState()
               ceTran.addETransition(ts, outSeqConnector, newConnectorBeforeMatch)
               ceTran.addTransition(newConnectorBeforeMatch, lbl, copy, oneCharMatch)
-              debugPrintln("oneCharMatch_init: " + oneCharMatch)
             }
           }
         case Matching(frontier) =>
@@ -139,7 +135,6 @@ object MatchAllLeftLongestCEPreOp {
             val noreachImg = getImage(aut, noreach, lbl)
 
             val noMatch = getState(NotMatching, initImg ++ frontImg ++ noreachImg)
-            debugPrintln("noMatch: " + noMatch)
             ceTran.addTransition(ts, lbl, nop, noMatch)
 
             if (!initImg.isEmpty) {
@@ -147,7 +142,6 @@ object MatchAllLeftLongestCEPreOp {
               val newConnectorBeforeMatch = ceTran.newState()
               ceTran.addETransition(ts, outSeqConnector, newConnectorBeforeMatch)
               ceTran.addTransition(newConnectorBeforeMatch, lbl, copy, newMatch)
-              debugPrintln("newMatch: " + newMatch)
             }
 
             if (initImg.exists(aut.isAccept(_))) {
@@ -155,7 +149,6 @@ object MatchAllLeftLongestCEPreOp {
               val newConnectorBeforeMatch = ceTran.newState()
               ceTran.addETransition(ts, outSeqConnector, newConnectorBeforeMatch)
               ceTran.addTransition(newConnectorBeforeMatch, lbl, copy, oneCharMatch)
-              debugPrintln("oneCharMatch: " + oneCharMatch)
             }
           }
       }

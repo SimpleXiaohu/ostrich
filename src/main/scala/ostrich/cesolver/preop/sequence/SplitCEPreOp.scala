@@ -33,7 +33,6 @@ import ostrich.cesolver.automata.StringSeqAutomaton
 import ostrich.cesolver.preop.CEPreOp
 import ostrich.cesolver.preop.ReplaceAllCEPreOp
 import scala.collection.mutable.ArrayBuffer
-import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ap.parser.smtlib.Absyn.Term
 import ap.parser.IBinJunctor
 import ostrich.cesolver.util.ParikhUtil.sumVec

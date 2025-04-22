@@ -51,7 +51,6 @@ import ap.types.Sort.Integer
 import ostrich.cesolver.preprocess.CEReducerFactory
 import ostrich.cesolver.util.ParikhUtil.throwWithStackTrace
 import ostrich.cesolver.preprocess.CEPredtoEqConverter
-import ostrich.cesolver.util.ParikhUtil.debugPrintln
 import ostrich.cesolver.automata.StringSeqAutomaton
 import ap.theories.arrays.ExtArray
 import ap.types.Sort

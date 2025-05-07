@@ -20,7 +20,7 @@ cat << EOF > "$tPath/toolconfig.json"
 				"path" : "$tPath/SolverBinaries/z3_TRAU/z3"
 		},
 		"Ostrich" : {
-				"path" : "$tPath/../ostrich"
+				"path" : "$tPath/SolverBinaries/Ostrich/ostrich"
 		},
 		"oldOstrich" : {
 				"path" : "$tPath/SolverBinaries/oldOstrich/ostrich"

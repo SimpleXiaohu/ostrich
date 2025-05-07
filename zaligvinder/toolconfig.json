@@ -16,7 +16,7 @@
 				"path" : "/home/hudh/github/ostrich/zaligvinder/SolverBinaries/z3_TRAU/z3"
 		},
 		"Ostrich" : {
-				"path" : "/home/hudh/github/ostrich/zaligvinder/../ostrich"
+				"path" : "/home/hudh/github/ostrich/zaligvinder/SolverBinaries/Ostrich/ostrich"
 		},
 		"oldOstrich" : {
 				"path" : "/home/hudh/github/ostrich/zaligvinder/SolverBinaries/oldOstrich/ostrich"

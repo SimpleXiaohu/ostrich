@@ -75,8 +75,8 @@ def addRunner(addto):
             #   "Prop-BWD":               ["-nielsenSplitter", "+backwardPropagation"],
             #   "Prop-FWD-BWD":           ["-nielsenSplitter", "+forwardPropagation", "+backwardPropagation"],
             #   "Prop-FWD-BWD-Nielsen":   ["+nielsenSplitter", "+forwardPropagation", "+backwardPropagation"]
-            "BWD-Nielsen": ["+nielsenSplitter", "+backwardPropagation"],
-            "Eager-FWD-BWD-Nielsen": ["+eager", "+nielsenSplitter", "+forwardPropagation", "+backwardPropagation"]
+            "-fwd+bwd+nielsen": ["+nielsenSplitter", "+backwardPropagation"],
+            "+eager+fwd+bwd-nielsen": ["+eager", "+forwardPropagation", "+backwardPropagation"]
             }
     for i in params.keys():
         addto['Ostrich-'+i] = partial(run, params[i])

@@ -1,0 +1,23 @@
+{
+  "CVC5": {
+    "path": "/home/hudh/local/bin/cvc5/cvc5",
+    "args": [
+      "--lang",
+      "smt2",
+      "--produce-models"
+    ]
+  },
+  "Z3": {
+    "path" : "/home/hudh/local/bin/z3/z3",
+    "args": [
+      "-smt2",
+      "model=true"
+    ]
+  },
+  "OSTRICH": {
+    "path" : "/home/hudh/github/simplexiaohu/ostrich/ostrich",
+    "args" : [
+      "+cea"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+(declare-fun x () String)
+(declare-fun i () Int)
+(declare-fun a1 () (Seq String))
+
+(assert (= (seq.unit "abcd") (seq.at a1 i)))
+(assert (< 3 i))
+(assert (= x (seq.join a1 "a")))
+
+
+(check-sat)
+(get-model)
+

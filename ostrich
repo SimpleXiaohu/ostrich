@@ -33,6 +33,7 @@ for p; do
             ;;
         +cea)
             ostrichSolver=ostrich.cesolver.stringtheory.CEStringTheory
+            princessParams+=("-seqSolver=ostrich.cesolver.sequencetheory.CESeqTheory")
             ;;
         *)
             princessParams+=("$p")

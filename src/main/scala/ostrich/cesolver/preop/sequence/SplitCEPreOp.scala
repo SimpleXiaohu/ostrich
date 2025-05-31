@@ -36,67 +36,80 @@ import scala.collection.mutable.ArrayBuffer
 import ap.parser.smtlib.Absyn.Term
 import ap.parser.IBinJunctor
 import ostrich.cesolver.util.ParikhUtil.sumVec
+import ostrich.cesolver.automata.CETransducer
 
 object SplitCEPreOp {
-  def apply(splitString: String): SplitCEPreOp = new SplitCEPreOp(splitString)
+  def apply(splitString: String): SplitCEPreOp = {
+    val tran = ReplaceAllCEPreOp.buildTransducer(splitString.toCharArray())
+    new SplitCEPreOp(tran)
+  }
+
+  def apply(splitReg: CostEnrichedAutomaton): SplitCEPreOp = {
+    val tran = ReplaceAllCEPreOp.buildTransducer(splitReg)
+    new SplitCEPreOp(tran)
+  }
+
+  
+
+  private def deleteFirstConnectorAut(aut: StringSeqAutomaton) : StringSeqAutomaton = {
+    // create a new automaton that deletes the first connector
+    val deleteFirstConnectorAut     = new StringSeqAutomaton
+    val old2new = aut.states.map(s => s -> deleteFirstConnectorAut.newState).toMap
+    for ((s, l, t, v) <- aut.transitions)
+      deleteFirstConnectorAut.addTransition(old2new(s), l, old2new(t), v)
+    for ((s, t, v) <- aut.connectors())
+      deleteFirstConnectorAut.addSeqElementConnect(old2new(s), old2new(t), v)
+    for (s <- aut.acceptingStates)
+      deleteFirstConnectorAut.setAccept(old2new(s), true)
+    // delete first connector and store the update
+    if (aut.isAccept(aut.initialState)) {
+      deleteFirstConnectorAut.setAccept(deleteFirstConnectorAut.initialState, true)
+    }
+    for ((s, v) <- aut.nextSeqElements(aut.initialState)) {
+      for ((to, lbl, nextv) <- aut.outgoingTransitions(s)) {
+        deleteFirstConnectorAut.addTransition(deleteFirstConnectorAut.initialState, lbl, old2new(to), sumVec(v, nextv))
+      }
+      for ((to, nextv) <- aut.nextSeqElements(s)) {
+        deleteFirstConnectorAut.addSeqElementConnect(deleteFirstConnectorAut.initialState, old2new(to), sumVec(v, nextv))
+      }
+    }
+    deleteFirstConnectorAut.registers = aut.registers
+    deleteFirstConnectorAut.regsRelation = aut.regsRelation
+    deleteFirstConnectorAut.removeDeadStates()
+    return deleteFirstConnectorAut
+  }
 }
 
 /** Pre-operator for split constraint.
   */
-class SplitCEPreOp(splitString: String) extends CEPreOp {
+class SplitCEPreOp(tran: CETransducer) extends CEPreOp {
 
-  override def toString = "splitCEPreOp_" + '"' + splitString + '"'
+  import SplitCEPreOp._
+  override def toString = "splitCEPreOp"
 
   def apply(
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
     val res       = resultConstraint.asInstanceOf[StringSeqAutomaton]
-    val tran      = ReplaceAllCEPreOp.buildTransducer(splitString.toCharArray())
-    val deleteFirstConnectorAut = {
-      val aut     = new StringSeqAutomaton
-      val old2new = res.states.map(s => s -> aut.newState).toMap
-      for ((s, l, t, v) <- res.transitions)
-        aut.addTransition(old2new(s), l, old2new(t), v)
-      for ((s, t, v) <- res.connectors())
-        aut.addSeqElementConnect(old2new(s), old2new(t), v)
-      for (s <- res.acceptingStates)
-        aut.setAccept(old2new(s), true)
-      // delete first connector and store the update
-      if (res.isAccept(res.initialState)) {
-        aut.setAccept(aut.initialState, true)
-      }
-      for ((s, v) <- res.nextSeqElements(res.initialState)) {
-        for ((to, lbl, nextv) <- res.outgoingTransitions(s)) {
-          aut.addTransition(aut.initialState, lbl, old2new(to), sumVec(v, nextv))
-        }
-        for ((to, nextv) <- res.nextSeqElements(s)) {
-          aut.addSeqElementConnect(aut.initialState, old2new(to), sumVec(v, nextv))
-        }
-      }
-      aut.registers = res.registers
-      aut.regsRelation = res.regsRelation
-      aut.removeDeadStates()
-      aut
-    }
-    deleteFirstConnectorAut.toDot("deleteFirstConnectorAut")
-    res.toDot("splitCEPreOp_res")
-    val internals = deleteFirstConnectorAut.connectors()
-    val argAut = tran.preImage(deleteFirstConnectorAut, internals)
-    argAut.toDot(s"""splitCEPreOp_${splitString}_preImage""")
+    val splitHelpAut = deleteFirstConnectorAut(res)
+    val internals = splitHelpAut.connectors()
+    val argAut = tran.preImage(splitHelpAut, internals)
     (Iterator(Seq(argAut)), Seq())
   }
 
   /** Evaluate the described function; return <code>None</code> if the function is not defined for the given arguments.
     */
   def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
-    def splitLikeJS(a: String, b: String): Seq[String] =
-      a.split(java.util.regex.Pattern.quote(b), -1) // `-1` keeps empty strings (like JS)
-    val argStr    = arguments.head.map(_.toChar).mkString
-    val resSeq    = splitLikeJS(argStr, splitString)
-    val resSeqInt = resSeq.map(_.map(_.toInt))
-    // always add the arraySplitter in the end
     import StringSeqAutomaton.seqSplitter
-    Some(resSeqInt.foldLeft(Seq(seqSplitter))((spl, ele) => spl ++ ele :+ seqSplitter))
+    // def splitLikeJS(a: String, b: String): Seq[String] =
+    //   a.split(java.util.regex.Pattern.quote(b), -1) // `-1` keeps empty strings (like JS)
+    // val argStr    = arguments.head.map(_.toChar).mkString
+    // val resSeq    = splitLikeJS(argStr, splitString)
+    // val resSeqInt = resSeq.map(_.map(_.toInt))
+    // // always add the arraySplitter in the end
+    // import StringSeqAutomaton.seqSplitter
+    // Some(resSeqInt.foldLeft(Seq(seqSplitter))((spl, ele) => spl ++ ele :+ seqSplitter))
+    Some(seqSplitter +: tran(arguments.head, Seq(seqSplitter)).get :+ seqSplitter)
   }
 }

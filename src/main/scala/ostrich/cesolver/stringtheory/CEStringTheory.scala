@@ -146,6 +146,7 @@ class CEStringTheory(transducers: Seq[(String, Transducer)], flags: OFlags)
       (for (
         f <- Set(
           str_split,
+          str_splitre,
           str_join,
           str_empty,
           str_cons,

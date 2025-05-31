@@ -51,7 +51,10 @@ class UnaryFinalConstraints(
 
   lazy val hasRegister: Boolean = auts.exists(_.registers.nonEmpty)
 
-  private val productAut = auts.reduce((a1,a2) => (a1 & a2).asInstanceOf[CostEnrichedAutomatonBase])
+  private val productAut = {
+    ParikhUtil.debugPrintln("Iterm: " + strDataBaseId)
+    auts.reduce((a1,a2) => (a1 & a2).asInstanceOf[CostEnrichedAutomatonBase])
+  }
 
   private lazy val findModelAut = productAut  // TODO: remove duplicated transitions 
 

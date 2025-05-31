@@ -1,0 +1,20 @@
+(set-logic ALL)
+(define-fun reg () RegLan (re.++ (re.range "m" "z") (re.* (re.range "m" "z"))))
+
+(declare-const x String)
+(declare-const y String)
+
+(define-fun base () (Seq String) (seq.++ (seq.unit "a") (seq.unit "b") (seq.unit "c") (seq.unit "d")))
+(define-fun w_x_1 () (Seq String) (seq.write base 3 x))
+(define-fun w_x_2 () (Seq String) (seq.write w_x_1 0 x))
+(define-fun w_x_3 () (Seq String) (seq.write w_x_2 2 x))
+(define-fun w_y_1 () (Seq String) (seq.write base 0 y))
+(define-fun w_y_2 () (Seq String) (seq.write w_y_1 3 y))
+(define-fun w_y_3 () (Seq String) (seq.write w_y_2 1 y))
+(define-fun r_x_1 () String (seq.nth w_x_3 2))
+(define-fun r_y_1 () String (seq.nth w_y_3 3))
+(assert (str.in_re r_x_1 reg))
+(assert (str.in_re r_y_1 (re.comp reg)))
+
+(check-sat)
+(get-model)

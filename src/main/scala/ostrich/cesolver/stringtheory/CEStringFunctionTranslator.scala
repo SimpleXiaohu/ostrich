@@ -152,6 +152,12 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
         
       }
 
+      case FunPred(`str_splitre`) if regexAsTerm(a(1)).isDefined => {
+        val regex = regexAsTerm(a(1)).get
+        val aut = ceAutDatabase.regex2Automaton(regex).asInstanceOf[CostEnrichedAutomaton]
+        Some((() => SplitCEPreOp(aut), List(a(0)), a(2)))
+      }
+
       // Strings -------------------------------------------------------------
       case FunPred(`str_len`) =>
         Some((() => LengthCEPreOp(Internal2InputAbsy(a(1))), Seq(a(0)), a(1)))

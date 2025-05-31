@@ -55,7 +55,7 @@ object ReplaceAllCEPreOp {
     new ReplaceAllCEPreOp(transducer, replacement)
   }
 
-  private def buildTransducer(aut: CostEnrichedAutomaton) : CETransducer = {
+  def buildTransducer(aut: CostEnrichedAutomaton) : CETransducer = {
     ParikhUtil.todo("ReplaceAllCEPreOp: not handle empty match in pattern", 3)
     abstract class Mode
     // not matching

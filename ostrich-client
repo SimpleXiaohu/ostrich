@@ -106,6 +106,7 @@ until [ $success -eq 0 ]; do
                     ;;
                 +cea)
                     ostrichSolver=ostrich.cesolver.stringtheory.CEStringTheory
+                    princessParams+=("-seqSolver=ostrich.cesolver.sequencetheory.CESeqTheory")
                     ;;
 		-*|+*)
 		    echo "$var"
@@ -116,7 +117,8 @@ until [ $success -eq 0 ]; do
 	    esac
         done
 
-        echo "-stringSolver=$ostrichSolver:$ostrichParams"
+        echo "-stringSolver=$ostrichSolver:$ostrichParams" 
+        echo "${princessParams[@]}"
 
         echo "PROVE_AND_EXIT"
 

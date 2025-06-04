@@ -1,8 +1,0 @@
-(set-logic QF_S)
-(declare-const s (Seq String))
-(define-fun v0 () (Seq String) (seq.++ (seq.unit "111") (seq.unit "222")))
-(define-fun v1 () (Seq String) (seq.extract v0 0 2))
-(define-fun v2 () String (seq.nth v1 1))
-(assert (not (str.in_re v2 (re.+ (re.range "0" "9")))))
-(assert (= v2 "abc"))
-(check-sat)

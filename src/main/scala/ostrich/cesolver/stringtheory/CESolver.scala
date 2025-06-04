@@ -53,6 +53,11 @@ import ap.parser.ITerm
 import ap.theories.arrays.ExtArray
 import ap.types.Sort
 import ostrich.cesolver.preop.sequence.SeqNthCEPreOp
+import ap.parser.IFormula
+import ap.parser.SymbolCollector
+import ap.api.SimpleAPI.ProverStatus
+import ap.Prover
+
 
 class CESolver(theory: CEStringTheory, flags: OFlags) {
 

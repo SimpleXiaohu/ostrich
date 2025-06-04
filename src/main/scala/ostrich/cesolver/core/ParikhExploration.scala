@@ -68,6 +68,7 @@ import ostrich.cesolver.preop.sequence.SeqExtractCEPreOp
 import ostrich.cesolver.preop.sequence.SeqWriteCEPreOp
 import ostrich.cesolver.preop.sequence.SeqFilterCEPreOp
 import ostrich.cesolver.preop.sequence.MatchAllLeftLongestCEPreOp
+import ap.terfor.Formula
 
 object ParikhExploration {
 
@@ -85,6 +86,7 @@ object ParikhExploration {
 
     case _ => true
   }
+
 }
 
 class ParikhExploration(

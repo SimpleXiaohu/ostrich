@@ -72,7 +72,7 @@ class SeqWriteCEPreOp(i: ITerm) extends CEPreOp {
         val strIn = oneElemSeq2elem(in)
         // after the index
         val post = (setInitial(after, s) & makeAnySeq()).asInstanceOf[StringSeqAutomaton]
-        if (pre.isEmpty | in.isEmpty | after.isEmpty) Seq()
+        if (pre.isEmpty | in.isEmpty | post.isEmpty) Seq()
         else {
           var firstUpdate = Seq.fill(in.registers.length)(0)
           for ((_, v) <- in.nextSeqElements(in.initialState))

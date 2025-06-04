@@ -51,29 +51,29 @@ object TermGenerator {
 }
 
 class TermGenerator(private val id: Int)  {
-  var count = 0
+  var rcount, tcount, zcount, lcount, icount = 0
   def registerTerm: ITerm = {
-    count = count + 1
-    Sort.Integer.newConstant(s"R${count}_${id}")
+    rcount = rcount + 1
+    Sort.Integer.newConstant(s"R${rcount}_${id}")
   }
 
   def transitionTerm: ITerm = {
-    count = count + 1
-    Sort.Integer.newConstant(s"T${count}_${id}")
+    tcount = tcount + 1
+    Sort.Integer.newConstant(s"T${tcount}_${id}")
   }
 
   def zTerm: ITerm = {
-    count = count + 1
-    Sort.Integer.newConstant(s"Z${count}_${id}")
+    zcount = zcount + 1
+    Sort.Integer.newConstant(s"Z${zcount}_${id}")
   }
 
   def lenTerm: ITerm = {
-    count = count + 1
-    Sort.Integer.newConstant(s"Len${count}_${id}")
+    lcount = lcount + 1
+    Sort.Integer.newConstant(s"Len${lcount}_${id}")
   }
 
   def intTerm: ITerm = {
-    count = count + 1
-    Sort.Integer.newConstant(s"Int${count}_${id}")
+    icount = icount + 1
+    Sort.Integer.newConstant(s"Int${icount}_${id}")
   }
 }

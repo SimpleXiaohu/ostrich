@@ -61,9 +61,17 @@ class Z3Interface(SolverInterface):
         else:
             return {"status": "unknown"}
 
+# The input and output of Z3-noodler is the same as Z3
+class Z3NoodlerInterface(Z3Interface):
+    pass
+
 # The input and output of CVC5 is the same as Z3
 class CVC5Interface(Z3Interface):
     pass
+
+class OSTRICHInterface(Z3Interface):
+    pass
+
 
 
 # --- Core Functions ---
@@ -170,17 +178,19 @@ def run_all(solvers, interfaces, benchmarks, db_path="results.db"):
 if __name__ == "__main__":
     # Get the root dir of this script
     script_root = Path(__file__).parent
-    json_path = script_root / "solvers.json"
+    json_path = script_root / "str_solvers.json"
     db_path = script_root / "example.db"
     solvers = load_solvers(str(json_path))
     interfaces = {
         "Z3": Z3Interface(),
         "CVC5": CVC5Interface(),
-        "OSTRICH": OSTRICHSEQInterface(),
+        "OSTRICH-Seq": OSTRICHSEQInterface(),
+        "Z3-noodler": Z3NoodlerInterface(),
+        "OSTRICH": OSTRICHInterface(),
         # Add more solvers here...
     }
 
-    benchmark_dir = script_root / "../allbench/bench_ext"
+    benchmark_dir = script_root / "../allbench/bench_ext/no_filter_matchall"
     benchmarks = [str(p) for p in Path(benchmark_dir).rglob("*.smt2")]
 
     run_all(solvers, interfaces, benchmarks, db_path=str(db_path))

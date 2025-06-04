@@ -57,6 +57,7 @@ import ostrich.cesolver.preop.sequence.SeqWriteCEPreOp
 import ostrich.cesolver.preop.sequence.SeqFilterCEPreOp
 import ostrich.cesolver.automata.CEBasicOperations
 import ostrich.cesolver.preop.sequence.MatchAllLeftLongestCEPreOp
+import ostrich.cesolver.util.ParikhUtil.debugPrintln
 
 /** Class for mapping string constraints to string functions.
   */
@@ -124,7 +125,7 @@ class CEStringFunctionTranslator(theory: CEStringTheory, facts: Conjunction)
       case FunPred(`seq_extract`) => {
         val offset = Internal2InputAbsy(a(1))
         val length = Internal2InputAbsy(a(2))
-        Some((() => SeqExtractCEPreOp(offset, length), Seq(a(0), a(1), a(2)), a(3)))
+        Some((() => SeqExtractCEPreOp(offset, length, facts.arithConj), Seq(a(0), a(1), a(2)), a(3)))
       }
       case FunPred(`seq_++`) => {
         Some((() => SeqConcatCEPreOp(), List(a(0), a(1)), a(2)))

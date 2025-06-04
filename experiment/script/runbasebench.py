@@ -38,10 +38,12 @@ class OSTRICHSEQInterface(SolverInterface):
         if "unsat" in raw_output:
             return {"status": "unsat"}
         elif "error" in raw_output or "unknown" in raw_output:
+            print(f"[DEBUG] Raw output:\n{raw_output.strip()}")
             return {"status": "unknown"}
         elif "sat" in raw_output:
             return {"status": "sat"}
         else:
+            print(f"[DEBUG] Raw output:\n{raw_output.strip()}")
             return {"status": "unknown"}
 
 class Z3Interface(SolverInterface):
@@ -62,6 +64,9 @@ class Z3Interface(SolverInterface):
             return {"status": "sat"}
         else:
             return {"status": "unknown"}
+
+class SeCoInterface(Z3Interface):
+    pass
 
 # The input and output of CVC5
 class CVC5Interface(SolverInterface):
@@ -188,13 +193,14 @@ def run_all(solvers, interfaces, benchmarks, db_path="results.db"):
 if __name__ == "__main__":
     # Get the root dir of this script
     script_root = Path(__file__).parent
-    json_path = script_root / "solvers.json"
+    json_path = script_root / "seq_solvers.json"
     db_path = script_root / "example.db"
     solvers = load_solvers(str(json_path))
     interfaces = {
         "Z3": Z3Interface(),
         "CVC5": CVC5Interface(),
-        "OSTRICH": OSTRICHSEQInterface(),
+        "OSTRICH-Seq": OSTRICHSEQInterface(),
+        "OSTRICH-Arr": OSTRICHSEQInterface(),
         # Add more solvers here...
     }
 

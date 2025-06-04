@@ -90,4 +90,28 @@ object PreOpUtil {
     strSeqAut.initialState = states(0)
     strSeqAut
   }
+  def automatonWithLenSeqLessThan(len: Int): StringSeqAutomaton = {
+    if (len <= 0) return new StringSeqAutomaton
+    val sigmaLabel  = (Char.MinValue, Char.MaxValue)
+    val emptyUpdate = Seq()
+    val strSeqAut      = new StringSeqAutomaton
+    val states      = Seq.fill(len)(strSeqAut.newState())
+    for (i <- 1 until states.length)
+      strSeqAut.addTransition(
+        states(i),
+        sigmaLabel,
+        states(i),
+        emptyUpdate
+      )
+    for (i <- 0 until states.length; if i+1 < states.length)
+      strSeqAut.addSeqElementConnect(
+        states(i),
+        states(i + 1),
+        emptyUpdate
+      )
+    for (i <- 0 until states.length)
+      strSeqAut.setAccept(states(i), true)
+    strSeqAut.initialState = states(0)
+    strSeqAut
+  }
 }

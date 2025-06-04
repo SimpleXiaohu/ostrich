@@ -7,6 +7,7 @@
       "--produce-models"
     ]
   },
+
   "Z3": {
     "path" : "/home/hudh/local/bin/z3/z3",
     "args": [
@@ -14,10 +15,18 @@
       "model=true"
     ]
   },
-  "OSTRICH": {
+
+  "OSTRICH-Seq": {
     "path" : "/home/hudh/github/simplexiaohu/ostrich/ostrich-client",
     "args" : [
-      "+cea"
+      "+quiet"
+    ]
+  },
+
+  "OSTRICH-Arr": {
+    "path" : "/home/hudh/github/pruemmer/ostrich/ostrich-client",
+    "args" : [
+      "+quiet"
     ]
   }
 }

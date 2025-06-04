@@ -9,7 +9,7 @@
 (assert (< 1 j))
 (assert (= a2 (seq.++ (seq.unit "1") (seq.unit "2") (seq.unit "3") (seq.unit "4"))))
 (assert (= x (seq.join a1 "3")))
-(assert (< (str.len x) 3))
+(assert (= (str.len x) 3))
 
 
 

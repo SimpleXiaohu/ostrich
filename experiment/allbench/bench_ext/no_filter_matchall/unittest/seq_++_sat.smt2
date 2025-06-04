@@ -3,7 +3,7 @@
 
 (assert (= a1 (seq.++ (seq.unit "abcd") (seq.unit "abcd"))))
 (assert (= x (seq.join a1 "a")))
-(assert (= (x "abcdaabcd")))
+(assert (= x "abcdaabcd"))
 
 
 (check-sat)

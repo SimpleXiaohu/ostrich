@@ -1,9 +1,9 @@
 #!/bin/sh
 
-dotfilebase="/tmp/.ostrich"
+dotfilebase="/tmp/.ostrich_seq"
 
 JAVA=java
-JAVA_OPTS="-Xss20000k -Xmx1500m"
+JAVA_OPTS="-Xss20m -Xmx15000m"
 
 me=`whoami`
 portfile="$dotfilebase"_"$me"
@@ -89,8 +89,8 @@ until [ $success -eq 0 ]; do
         tail -n1 "$portfile"
 
         # command line arguments
-        ostrichSolver=ostrich.OstrichStringTheory
-        ostrichParams=""
+        ostrichSolver=ostrich.cesolver.stringtheory.CEStringTheory
+        princessParams+=("-seqSolver=ostrich.cesolver.sequencetheory.CESeqTheory")
 
         for var; do
 	    case "$var" in
@@ -100,14 +100,7 @@ until [ $success -eq 0 ]; do
                     else
                         ostrichParams=$ostrichParams,$var
                     fi
-                    ;;
-                -cea)
-                    ostrichSolver=ostrich.OstrichStringTheory
-                    ;;
-                +cea)
-                    ostrichSolver=ostrich.cesolver.stringtheory.CEStringTheory
-                    princessParams+=("-seqSolver=ostrich.cesolver.sequencetheory.CESeqTheory")
-                    ;;
+                    ;;                    
 		-*|+*)
 		    echo "$var"
 		    ;;

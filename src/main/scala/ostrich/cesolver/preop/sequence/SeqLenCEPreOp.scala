@@ -14,52 +14,61 @@ import ostrich.cesolver.preop.PreOpUtil
 object SeqLenCEPreOp {
 
   def seqLengthPreimage(length: ITerm): StringSeqAutomaton = length match {
-      case ConstInteger(value) =>
-        PreOpUtil.automatonWithLenSeq(value) 
-      case _: ITerm => {
-        // q0 -> (#, 1) -> q0; q0 -> (sigma, 0) -> q0
-        val preimage = new StringSeqAutomaton
-        val initalState = preimage.initialState
-        val acceptedS = preimage.newState
-        preimage.setAccept(initalState, true)
-        preimage.setAccept(acceptedS, true)
-        preimage.addTransition(
-          acceptedS,
-          preimage.LabelOps.sigmaLabel,
-          acceptedS,
-          Seq(0)
-        )
-        preimage.addSeqElementConnect(
-          acceptedS,
-          acceptedS,
-          Seq(1)
-        )
-        preimage.addSeqElementConnect(
-          initalState,
-          acceptedS,
-          Seq(1)
-        ) 
-        // registers: (length)
-        preimage.registers = Seq(length)
-
-        preimage
-      }
+    case ConstInteger(value) =>
+      PreOpUtil.automatonWithLenSeq(value)
+    case _: ITerm => {
+      // q0 -> (#, 1) -> q0; q0 -> (sigma, 0) -> q0
+      val preimage = new StringSeqAutomaton
+      val initalState = preimage.initialState
+      val acceptedS = preimage.newState
+      preimage.setAccept(initalState, true)
+      preimage.setAccept(acceptedS, true)
+      preimage.addTransition(
+        acceptedS,
+        preimage.LabelOps.sigmaLabel,
+        acceptedS,
+        Seq(0)
+      )
+      preimage.addSeqElementConnect(
+        acceptedS,
+        acceptedS,
+        Seq(1)
+      )
+      preimage.addSeqElementConnect(
+        initalState,
+        acceptedS,
+        Seq(1)
+      )
+      // registers: (length)
+      preimage.registers = Seq(length)
+      preimage
     }
+  }
 
+  def seqLengthLessThanPreimage(length: ITerm): StringSeqAutomaton = length match {
+    case ConstInteger(value) =>
+      PreOpUtil.automatonWithLenSeqLessThan(value)
+    case _: ITerm => {
+      val seqLen = TermGenerator().registerTerm
+      val preimage = seqLengthPreimage(seqLen)
+      preimage.regsRelation = preimage.regsRelation & (seqLen < length)
+      preimage
+    }
+  }
 
   def apply(len: ITerm): SeqLenCEPreOp = new SeqLenCEPreOp(len)
 }
 
 /** Pre-operator for seq.len
   */
-class SeqLenCEPreOp(len: ITerm) extends CEPreOp{
+class SeqLenCEPreOp(len: ITerm) extends CEPreOp {
 
   import SeqLenCEPreOp._
   override def toString = "seqLenCEPreOp"
 
   def apply(
-      argumentConstraints: Seq[Seq[Automaton]],
-      resultConstraint: Automaton
+    argumentConstraints: Seq[Seq[Automaton]],
+    resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
     (Iterator(Seq(seqLengthPreimage(len))), Seq())
   }
@@ -68,7 +77,7 @@ class SeqLenCEPreOp(len: ITerm) extends CEPreOp{
     */
   def eval(arguments: Seq[Seq[Int]]): Option[Seq[Int]] = {
     val sequence = StringSeqAutomaton.toSeqResult(arguments.head)
-    val len      = sequence.length
+    val len = sequence.length
     Some(Seq(len))
   }
 }

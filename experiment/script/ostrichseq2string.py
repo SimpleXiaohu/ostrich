@@ -10,15 +10,19 @@
 
 
 ###--- For sequence operations and the extend operations above, I want to use string operations to encode them.
-###--- First, I will define a string to represent a sequence of strings. The string will be a #-separated list of strings. For example, the sequence ["a", "b", "c"] will be represented as "#a#b#c". Note that "" is empty sequence while "#" is the sequence [""]
+###--- First, I will define a string to represent a sequence of strings. The string will be a #-separated list of strings. For example, the sequence ["a", "b", "c"] will be represented as "#a#b#c". Note that "" is the empty sequence while "#" is the sequence [""]. Since we need to difine function of each sequence operation, the return value of the sequence operation will be a special error character "E" if the operation returns undefined. Finally, we will remove the separator and the special error character from the alphabet of string.
+
+##=== remove the separator and the special error character from the alphabet of string
+# (define-fun re_allchar () RegLan (re.diff re.allchar (re.union (str.to_re seq_spliter) (str.to_re error_char))))
+# (define-fun re_all () RegLan (re.* re_allchar))
 
 ##=== (declare-const seq (Seq String))
 # (declare-const seq String)
-# (define-fun is_seq_re () RegLan (re.* (re.++ (str.to_re seq_spliter) re.all)))
+# (define-fun is_seq_re () RegLan (re.* (re.++ (str.to_re seq_spliter) re_all)))
 # (assert (str.in_re seq is_seq_re))
 
 ##=== (declare-const str String)
-# (define-fun is_str_re () RegLan (re.comp is_seq_re)
+# (define-fun is_str_re () RegLan re_all)
 # (assert (str.in_re str is_str_re))
 
 ##=== (seq.++ (seq1 seq2))
@@ -43,9 +47,36 @@
 #       (ite
 #         (and (= i (seq_len before_seq)) (= 1 (seq_len in_seq)) (= seq (str.++ before_seq in_seq after_seq)))
 #         (str.++ before_seq seq_spliter str after_seq)
-#         "error"
+#         error_char
 #       )
-#       "error"
+#       error_char
+#     )
+#   )
+# )
+
+##=== (seq.extract seq offset length)
+# (declare-fun seq_extract_before (String Int Int) String)
+# (declare-fun seq_extract_in (String Int Int) String)
+# (declare-fun seq_extract_after (String Int Int) String)
+# (define-fun seq_extract ((seq String) (offset Int) (length Int)) String
+#   (let
+#     ((before_seq (seq_extract_before seq offset length)) (in_seq (seq_extract_in seq offset length)) (after_seq (seq_extract_after seq offset length)))
+#     (ite 
+#       (or (< offset 0) (<= (seq_len seq) offset)) 
+#       seq_spliter
+#       (ite
+#         (and (str.in_re before_seq is_seq_re) (str.in_re in_seq is_seq_re) (str.in_re after_seq is_seq_re))
+#         (ite
+#           (and (= offset (seq_len before_seq)) (= length (seq_len in_seq)) (= seq (str.++ before_seq in_seq after_seq)))
+#           in_seq
+#           (ite
+#             (and (= offset (seq_len before_seq)) (<= (seq_len in_seq) length) (= seq (str.++ before_seq in_seq))) 
+#             in_seq
+#             error_char
+#           )
+#         )
+#         error_char
+#       )
 #     )
 #   )
 # )
@@ -62,9 +93,9 @@
 #       (ite
 #         (and (= i (seq_len before_seq)) (= 1 (seq_len in_seq)) (= seq (str.++ before_seq in_seq after_seq)))
 #         in_seq
-#         "error"
+#         error_char
 #       )
-#       "error"
+#       error_char
 #     )
 #   )
 # )
@@ -90,43 +121,19 @@
 #   )
 # )
 
-##=== the seq.filter and str.match_all can not be encoded by string operations so we do not translate them on purpose to make solvers return unknown
+##=== define the special error character and the sequence splitter
+# (declare-fun seq_spliter () String)
+# (declare-fun error_char () String)
+# (assert (= seq_spliter "\\u{0}"))  ; use the null character as the sequence splitter
+# (assert (= error_char "\\u{1}"))  ; use the character "\u{1}" as the error character
 
-##=== axioms to ensure the correctness of the encoding
-#= axiom of seq.write
-# (assert 
-#   (forall ((seq String) (i Int) (str String)) 
-#     (str.in_re (seq_write seq i str) is_seq_re)
-#   )
-# )
-#= axiom of seq.at
-# (assert
-#   (forall ((seq String) (i Int))
-#     (str.in_re (seq_at seq i) is_seq_re)
-#   )
-# )
-#= axiom of seq.nth
-# (assert
-#   (forall ((seq String) (i Int))
-#     (str.in_re (seq_nth seq i) is_str_re)
-#   )
-# )
-#= axiom of str.split
-# (assert
-#  (forall ((str String) (sep String))
-#    (str.in_re (str_split str sep) is_seq_re)
-#  )
-# )
-#= axiom of seq.join
-# (assert
-#   (forall ((seq String) (sep String))
-#     (str.in_re (seq_join seq sep) is_str_re)
-#   )
-# )
+##=== the seq.filter and str.match_all can not be encoded by string operations so we do not translate them on purpose to make solvers return unknown
 
 
 
 import re, argparse, os
+
+
 
 def translateStrDeclare(smtStr: str) -> str :
   strDeclareRE = r'\(declare-const\s+(\w+)\s+String\)'
@@ -144,13 +151,25 @@ def translateSeqDeclare2(smtStr: str) -> str :
   seqDeclareRE = r'\(declare-fun\s+(\w+)\s+\(\)\s+\(Seq\s+String\)\)'
   return re.sub(seqDeclareRE, r'(declare-const \1 String)\n(assert (str.in_re \1 is_seq_re))', smtStr)
 
+def translateSeqDeclare3(smtStr: str) -> str :
+  seqDeclareRE = r'\(define\-fun\s+(\w+)\s+\(\)\s+\(Seq\s+String\)'
+  return re.sub(seqDeclareRE, r'(define-fun \1 () String', smtStr)
+
+def translateReAll(smtStr: str) -> str:
+  reAllRE = r're.all'
+  return re.sub(reAllRE, r're_all', smtStr)
+
 def translateSeqUnit(smtStr: str) -> str :
-  seqUnitRE = r'\(seq\.unit\s+\"(\w+)\"\)'
+  seqUnitRE = r'\(seq\.unit\s+\"((\w|\s)+)\"\)'
   return re.sub(seqUnitRE, r'(str.++ seq_spliter "\1")', smtStr)
 
 def translateSeqWrite(smtStr: str) -> str :
   seqWriteRE = r'seq\.write'
   return re.sub(seqWriteRE, r'seq_write', smtStr)
+
+def translateSeqExtract(smtStr: str) -> str :
+  seqExtractRE = r'seq\.extract'
+  return re.sub(seqExtractRE, r'seq_extract', smtStr)
 
 def translateSeqNth(smtStr: str) -> str :
   seqNthRE = r'seq\.nth'
@@ -195,12 +214,27 @@ def addStrSpliterHeader(smtStr: str) -> str :
   )
   return "".join(strSpliter) + smtStr
 
+def addErrorCharHeader(smtStr: str) -> str :
+  errorChar = (
+    '(declare-fun error_char () String)\n',
+    '(assert (= error_char "\\u{1}"))\n',
+  )
+  return "".join(errorChar) + smtStr
+
+def addReAllCharHeader(smtStr: str) -> str :
+  reAllChar = '(define-fun re_allchar () RegLan (re.diff re.allchar (re.union (str.to_re seq_spliter) (str.to_re error_char))))\n'
+  return reAllChar + smtStr
+
+def addReAllHeader(smtStr: str) -> str :
+  reAll = '(define-fun re_all () RegLan (re.* re_allchar))\n'
+  return reAll + smtStr
+
 def addSeqRegexHeader(smtStr: str) -> str :
-  seqRegex = '(define-fun is_seq_re () RegLan (re.* (re.++ (str.to_re seq_spliter) re.all)))\n'
+  seqRegex = '(define-fun is_seq_re () RegLan (re.* (re.++ (str.to_re seq_spliter) re_all)))\n'
   return seqRegex + smtStr
 
 def addStrRegexHeader(smtStr: str) -> str :
-  strRegex = '(define-fun is_str_re () RegLan (re.comp is_seq_re))\n'
+  strRegex = '(define-fun is_str_re () RegLan re_all)\n'
   return strRegex + smtStr
 
 def addSeqLenHeader(smtStr: str) -> str :
@@ -229,14 +263,46 @@ def addSeqWriteHeader(smtStr: str) -> str :
     '      (ite\n',
     '        (and (= i (seq_len before_seq)) (= 1 (seq_len in_seq)) (= seq (str.++ before_seq in_seq after_seq)))\n',
     '        (str.++ before_seq seq_spliter str after_seq)\n',
-    '        "error"\n',
+    '        error_char\n',
     '      )\n',
-    '      "error"\n',
+    '      error_char\n',
     '    )\n',
     '  )\n',
     ')\n'
   )
   return ''.join(seqWrite) + smtStr
+
+def addSeqExtractHeader(smtStr: str) -> str :
+  seqExtract = (
+    '(declare-fun seq_extract_before (String Int Int) String)\n',
+    '(declare-fun seq_extract_in (String Int Int) String)\n',
+    '(declare-fun seq_extract_after (String Int Int) String)\n',
+    '(define-fun seq_extract ((seq String) (offset Int) (length Int)) String\n',
+    '  (let\n',
+    '    ((before_seq (seq_extract_before seq offset length))\n',
+    '     (in_seq (seq_extract_in seq offset length))\n',
+    '     (after_seq (seq_extract_after seq offset length)))\n',
+    '    (ite\n',
+    '      (or (< offset 0) (<= (seq_len seq) offset))\n',
+    '      seq_spliter\n',
+    '      (ite\n',
+    '        (and (str.in_re before_seq is_seq_re) (str.in_re in_seq is_seq_re) (str.in_re after_seq is_seq_re))\n',
+    '        (ite\n',
+    '          (and (= offset (seq_len before_seq)) (= length (seq_len in_seq)) (= seq (str.++ before_seq in_seq after_seq)))\n',
+    '          in_seq\n',
+    '          (ite\n',
+    '            (and (= offset (seq_len before_seq)) (<= (seq_len in_seq) length) (= seq (str.++ before_seq in_seq)))\n',
+    '            in_seq\n',
+    '            error_char\n',
+    '          )\n',
+    '        )\n',
+    '        error_char\n',
+    '      )\n',
+    '    )\n',
+    '  )\n'
+    ')\n'
+  )
+  return ''.join(seqExtract) + smtStr
   
 def addSeqAtHeader(smtStr: str) -> str :
   seqAt = (
@@ -253,13 +319,14 @@ def addSeqAtHeader(smtStr: str) -> str :
     '      (ite\n',
     '        (and (= i (seq_len before_seq)) (= 1 (seq_len in_seq)) (= seq (str.++ before_seq in_seq after_seq)))\n',
     '        in_seq\n',
-    '        "error"\n',
+    '        error_char\n',
     '      )\n',
-    '      "error"\n',
+    '      error_char\n',
     '    )\n',
     '  )\n',
     ')\n'
   )
+    
   return ''.join(seqAt) + smtStr
 
 def addSeqNthHeader(smtStr: str) -> str :
@@ -335,8 +402,11 @@ def ostrichseq2string(smtStr: str) -> str:
   smtStr = translateStrDeclare2(smtStr)
   smtStr = translateSeqDeclare(smtStr)
   smtStr = translateSeqDeclare2(smtStr)
+  smtStr = translateSeqDeclare3(smtStr)
+  smtStr = translateReAll(smtStr)
   smtStr = translateSeqUnit(smtStr)
   smtStr = translateSeqWrite(smtStr)
+  smtStr = translateSeqExtract(smtStr)
   smtStr = translateSeqNth(smtStr)
   smtStr = translateSeqConcat(smtStr)
   smtStr = translateSeqAt(smtStr)
@@ -345,8 +415,9 @@ def ostrichseq2string(smtStr: str) -> str:
   smtStr = translateStrSplit(smtStr)
   smtStr = removeSetLogic(smtStr)
   smtStr = removeGetModel(smtStr)
-  smtStr = addAxioms(smtStr)
+  # smtStr = addAxioms(smtStr)
   smtStr = addSeqWriteHeader(smtStr)
+  smtStr = addSeqExtractHeader(smtStr)
   smtStr = addSeqNthHeader(smtStr)
   smtStr = addSeqAtHeader(smtStr)
   smtStr = addSeqJoinHeader(smtStr)
@@ -355,6 +426,9 @@ def ostrichseq2string(smtStr: str) -> str:
   smtStr = addSeqLenHeader(smtStr)
   smtStr = addStrRegexHeader(smtStr)
   smtStr = addSeqRegexHeader(smtStr)
+  smtStr = addReAllHeader(smtStr)
+  smtStr = addReAllCharHeader(smtStr)
+  smtStr = addErrorCharHeader(smtStr)
   smtStr = addStrSpliterHeader(smtStr)
   smtStr = addSetLogicHeader(smtStr)
   

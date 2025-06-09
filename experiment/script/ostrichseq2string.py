@@ -12,6 +12,12 @@
 ###--- For sequence operations and the extend operations above, I want to use string operations to encode them.
 ###--- First, I will define a string to represent a sequence of strings. The string will be a #-separated list of strings. For example, the sequence ["a", "b", "c"] will be represented as "#a#b#c". Note that "" is the empty sequence while "#" is the sequence [""]. Since we need to difine function of each sequence operation, the return value of the sequence operation will be a special error character "E" if the operation returns undefined. Finally, we will remove the separator and the special error character from the alphabet of string.
 
+##=== define the special error character and the sequence splitter
+# (declare-fun seq_spliter () String)
+# (declare-fun error_char () String)
+# (assert (= seq_spliter "\\u{0}"))  ; use the null character as the sequence splitter
+# (assert (= error_char "\\u{1}"))  ; use the character "\u{1}" as the error character
+
 ##=== remove the separator and the special error character from the alphabet of string
 # (define-fun re_allchar () RegLan (re.diff re.allchar (re.union (str.to_re seq_spliter) (str.to_re error_char))))
 # (define-fun re_all () RegLan (re.* re_allchar))
@@ -104,7 +110,12 @@
 ##=== (seq.nth seq offset)
 # (define-fun seq_nth ((seq String) (i Int)) String
 #   (let ((seq_nth_help (seq_at seq i)))
-#     (str.substr seq_nth_help 1 (str.len seq_nth_help))
+#     (ite 
+#       (= seq_nth_help error_char)
+#       error_char
+#       (str.substr seq_nth_help 1 (str.len seq_nth_help))
+#     )
+    
 #   )
 # )
 
@@ -121,11 +132,6 @@
 #   )
 # )
 
-##=== define the special error character and the sequence splitter
-# (declare-fun seq_spliter () String)
-# (declare-fun error_char () String)
-# (assert (= seq_spliter "\\u{0}"))  ; use the null character as the sequence splitter
-# (assert (= error_char "\\u{1}"))  ; use the character "\u{1}" as the error character
 
 ##=== the seq.filter and str.match_all can not be encoded by string operations so we do not translate them on purpose to make solvers return unknown
 
@@ -133,6 +139,7 @@
 
 import re, argparse, os
 
+global var_id
 
 
 def translateStrDeclare(smtStr: str) -> str :
@@ -191,9 +198,22 @@ def translateStrSplit(smtStr: str) -> str :
   strSplitRE = r'str\.split'
   return re.sub(strSplitRE, r'str_split', smtStr)
 
+def translateSeqFilter(smtStr: str) -> str :
+  # We assume that all filter operations are of the form (seq.filter seq regex) where seq and regex are variables
+  # We use a trick to add a sequence splitter after seq, then we can replace all #element# that element not in regex to #.
+  # Finally, we remove the tail # from the result using substring operation.
+  fliterRE = r'\(seq\.filter\s+(\w+)\s+(\w+)\s*\)'
+  return re.sub(fliterRE, r'(str.substr (str.replace_re_all (str.++ \1 seq_spliter)  (re.++ (str.to_re seq_spliter) (re.inter re_all (re.comp \2)) (str.to_re seq_spliter)) seq_spliter) 0 (- (str.len (str.replace_re_all (str.++ \1 seq_spliter)  (re.++ (str.to_re seq_spliter) (re.inter re_all (re.comp \2)) (str.to_re seq_spliter)) seq_spliter)) 1))', smtStr)
+
 def translateSeqConcat(smtStr: str) -> str :
   seqConcatRE = r'seq\.\+\+'
   return re.sub(seqConcatRE, r'str.++', smtStr)
+
+def translateEmptySeq(smtStr: str) -> str :
+  # (as seq.empty (Seq String))
+  emptySeqRE = r'\(as\s+seq.empty\s+\(Seq\s+String\)\)'
+  return re.sub(emptySeqRE, r'""', smtStr)
+  
 
 def removeSetLogic(smtStr: str) -> str :
   setLogicRE = r'\(set-logic\s+\w+\)'
@@ -333,7 +353,11 @@ def addSeqNthHeader(smtStr: str) -> str :
   seqNth = (
     '(define-fun seq_nth ((seq String) (i Int)) String\n',
     '  (let ((seq_nth_help (seq_at seq i)))\n',
-    '    (str.substr seq_nth_help 1 (str.len seq_nth_help))\n',
+    '    (ite\n',
+    '      (= seq_nth_help error_char)\n',
+    '      error_char\n',
+    '      (str.substr seq_nth_help 1 (str.len seq_nth_help))\n',
+    '    )\n',
     '  )\n',
     ')\n'
   )
@@ -413,6 +437,8 @@ def ostrichseq2string(smtStr: str) -> str:
   smtStr = translateSeqLen(smtStr)
   smtStr = translateSeqJoin(smtStr)
   smtStr = translateStrSplit(smtStr)
+  smtStr = translateSeqFilter(smtStr)
+  smtStr = translateEmptySeq(smtStr)
   smtStr = removeSetLogic(smtStr)
   smtStr = removeGetModel(smtStr)
   # smtStr = addAxioms(smtStr)

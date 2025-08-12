@@ -108,6 +108,8 @@ class SeqNthCEPreOp(index: ITerm) extends SeqNthCEPreOpBase {
       argumentConstraints: Seq[Seq[Automaton]],
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
+    // FIXME: Now the semantic of SeqNth in cvc5 and z3 is not clear enough, 
+    // so we only implement the case that index is greater than 0
     // if index > 0
     val res             = resultConstraint.asInstanceOf[CostEnrichedAutomaton]
     val sigmaLabel      = (Char.MinValue, Char.MaxValue)
@@ -122,7 +124,7 @@ class SeqNthCEPreOp(index: ITerm) extends SeqNthCEPreOpBase {
     indexGeqZeroAut.addSeqElementConnect(beforeIdxS, beforeIdxS, addOneUpdate)
     // the sequence element at the index
     for ((s, l, t, v) <- res.transitions)
-      indexGeqZeroAut.addTransition(old2new(s), l, old2new(t), emptyUpdate)
+      indexGeqZeroAut.addTransition(old2new(s), l, old2new(t), v :+ 0)
     // the sequence elements after the index
     val afterIdxS = indexGeqZeroAut.newState()
     indexGeqZeroAut.addTransition(

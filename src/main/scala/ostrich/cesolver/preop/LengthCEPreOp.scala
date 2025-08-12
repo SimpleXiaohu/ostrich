@@ -48,6 +48,7 @@ object LengthCEPreOp {
   def lengthPreimage(length: ITerm): CostEnrichedAutomaton = {
     val preimage = new CostEnrichedAutomaton
     val initalState = preimage.initialState
+    val lengthTerm = TermGenerator().lenTerm
 
     length match {
       case IExpression.Const(IdealInt(value)) =>
@@ -62,7 +63,8 @@ object LengthCEPreOp {
         )
         preimage.setAccept(initalState, true)
         // registers: (length)
-        preimage.registers = Seq(length)
+        preimage.registers = Seq(lengthTerm)
+        preimage.regsRelation = lengthTerm === length
         preimage
     }
 

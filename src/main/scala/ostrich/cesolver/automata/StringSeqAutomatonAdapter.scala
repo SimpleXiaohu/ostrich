@@ -41,6 +41,7 @@ import scala.collection.mutable.{
 
 import ostrich.cesolver.util.TermGenerator
 import ostrich.cesolver.util.ParikhUtil
+import ap.parser.IExpression
 
 object StringSeqInitFinalAutomaton {
   def apply[A <: StringSeqAutomaton](
@@ -93,9 +94,10 @@ case class _StringSeqInitFinalAutomaton[A <: StringSeqAutomaton](
 
   private val termGen = TermGenerator()
 
-  // initialize registers
+  // initialize registers and relation
   initialState = startState
   this.registers = Seq.fill(underlying.registers.size)(termGen.registerTerm)
+  this.regsRelation = IExpression.Boolean2IFormula(true)
 
   private def computeReachableStates(
       initState: State,
@@ -135,26 +137,27 @@ case class _StringSeqInitFinalAutomaton[A <: StringSeqAutomaton](
     bwdReachable
   }
 
-  lazy val internalise: StringSeqAutomaton = {
-    val smap = new MHashMap[underlying.State, underlying.State]
-    val strSeqAut = new StringSeqAutomaton
+  // not used
+  // lazy val internalise: StringSeqAutomaton = {
+  //   val smap = new MHashMap[underlying.State, underlying.State]
+  //   val strSeqAut = new StringSeqAutomaton
 
-    for (s <- states)
-      smap.put(s, strSeqAut.newState())
+  //   for (s <- states)
+  //     smap.put(s, strSeqAut.newState())
 
-    for (from <- states) {
-      for ((to, label, update) <- outgoingTransitions(from))
-        strSeqAut.addTransition(smap(from), label, smap(to), update)
-      for ((to, update) <- nextSeqElements(from))
-        strSeqAut.addSeqElementConnect(smap(from), smap(to), update)
-      strSeqAut.setAccept(smap(from), isAccept(from))
-    }
+  //   for (from <- states) {
+  //     for ((to, label, update) <- outgoingTransitions(from))
+  //       strSeqAut.addTransition(smap(from), label, smap(to), update)
+  //     for ((to, update) <- nextSeqElements(from))
+  //       strSeqAut.addSeqElementConnect(smap(from), smap(to), update)
+  //     strSeqAut.setAccept(smap(from), isAccept(from))
+  //   }
 
-    strSeqAut.registers = _registers
-    strSeqAut.regsRelation = _regsRelation
-    strSeqAut.initialState = smap(initialState)
-    strSeqAut
-  }
+  //   strSeqAut.registers = _registers
+  //   strSeqAut.regsRelation = _regsRelation
+  //   strSeqAut.initialState = smap(initialState)
+  //   strSeqAut
+  // }
 
   override lazy val states =
     computeReachableStates(_initialState, _acceptingStates)

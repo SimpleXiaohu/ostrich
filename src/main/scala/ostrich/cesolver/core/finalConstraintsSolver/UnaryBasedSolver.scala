@@ -98,6 +98,10 @@ class UnaryBasedSolver(
       case ProverStatus.Sat if generateModel =>
         // generate model
         val partialModel = lProver.partialModel
+        ParikhUtil.log(
+          s"Partial model is: " +
+            partialModel.toString
+        )
         // update string model
         for (singleString <- constraints) {
           val value = measure(

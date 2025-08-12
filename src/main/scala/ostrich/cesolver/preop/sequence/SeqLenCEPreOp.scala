@@ -17,10 +17,11 @@ object SeqLenCEPreOp {
     case ConstInteger(value) =>
       PreOpUtil.automatonWithLenSeq(value)
     case _: ITerm => {
-      // q0 -> (#, 1) -> q0; q0 -> (sigma, 0) -> q0
+      // q0 -> (#, 1) -> q0 -> (sigma, 0) -> q0
       val preimage = new StringSeqAutomaton
       val initalState = preimage.initialState
       val acceptedS = preimage.newState
+      val lengthTerm = TermGenerator().lenTerm
       preimage.setAccept(initalState, true)
       preimage.setAccept(acceptedS, true)
       preimage.addTransition(
@@ -39,8 +40,8 @@ object SeqLenCEPreOp {
         acceptedS,
         Seq(1)
       )
-      // registers: (length)
-      preimage.registers = Seq(length)
+      preimage.registers = Seq(lengthTerm)
+      preimage.regsRelation = lengthTerm === length
       preimage
     }
   }

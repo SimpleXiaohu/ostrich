@@ -8,25 +8,27 @@ write a same string to different positions of sequence and then check the length
 (declare-const d String)
 
 (define-fun r () RegLan
-  (re.inter
-    {r1}
-    {r2}
-  )
+  {RE}
 )
 
 (assert (str.in_re x r))
 
-(define-fun s () (Seq String)
-  (seq.write (seq.write (seq.++ (seq.unit "a") (seq.unit "b")) 0 x) 1 x)
-)
+(declare-fun s0 () (Seq String))
+(declare-fun s1 () (Seq String))
+(declare-fun s2 () (Seq String))
+(assert (= s1 (seq.write s0 n1 x)))
+(assert (= s2 (seq.write s1 m1 x)))
+(assert (> (seq.len s0) n1))
+(assert (> (seq.len s0) m1))
 
 (define-fun str () String
-  (str.++ (seq.nth s 0) (seq.nth s 1))
+  (str.++ (seq.nth s2 n2) (seq.nth s2 m2))
 )
 
-(assert (str.in_re str {final_regex}))
-(assert (< (seq.len s) (str.len str)))
+(assert (str.in_re str {RE}))
+(assert (< (seq.len s2) (str.len str)))
 
 (check-sat)
+
 ```
 

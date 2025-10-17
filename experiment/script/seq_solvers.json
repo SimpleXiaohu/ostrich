@@ -19,7 +19,8 @@
   "OSTRICH-Seq": {
     "path" : "/home/hudh/github/simplexiaohu/ostrich/ostrich-client",
     "args" : [
-      "+quiet"
+      "+quiet",
+      "+eager"
     ]
   },
 

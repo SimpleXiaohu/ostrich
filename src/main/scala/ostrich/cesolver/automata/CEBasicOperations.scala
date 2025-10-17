@@ -426,8 +426,6 @@ object CEBasicOperations {
 
   private def registersMustBeEmpty(aut: CostEnrichedAutomaton): Unit = {
     if (aut.registers.nonEmpty) {
-      if (ParikhUtil.debugOpt)
-        aut.toDot("registersMustBeEmpty_assertion_failed")
       throw new Exception("Registers must be empty")
     }
   }

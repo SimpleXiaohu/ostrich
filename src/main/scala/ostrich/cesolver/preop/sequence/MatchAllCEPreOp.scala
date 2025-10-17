@@ -154,7 +154,6 @@ object MatchAllLeftLongestCEPreOp {
       }
     }
     ceTran.removeDeadStates()
-    ceTran.toDot("MatchAllLeftLongestCEPreOp_transducer")
     ceTran
   }
 }

@@ -62,7 +62,6 @@ object LengthCEPreOp {
           Seq(1)
         )
         preimage.setAccept(initalState, true)
-        // registers: (length)
         preimage.registers = Seq(lengthTerm)
         preimage.regsRelation = lengthTerm === length
         preimage

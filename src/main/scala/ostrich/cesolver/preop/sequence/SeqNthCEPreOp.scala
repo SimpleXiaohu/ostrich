@@ -153,7 +153,6 @@ class SeqNthCEPreOp(index: ITerm) extends SeqNthCEPreOpBase {
     indexGeqZeroAut.regsRelation = res.regsRelation & newRegister === index + 1
     indexGeqZeroAut.registers = res.registers :+ newRegister
     val preImage = indexGeqZeroAut & StringSeqAutomaton.makeAnySeq()
-    preImage.asInstanceOf[StringSeqAutomaton].toDot("seqnth")
     (Iterator(Seq(preImage)), Seq())
   }
 }

@@ -447,8 +447,6 @@ class CETransducer {
     for ((ps, pt, vec) <- epsilonPairs)
       addEpsilonWithVec(ps, pt, vec)
     preImageAut.removeDeadStates()
-    preImageAut.toDot("CETransducerPreImage")
-    aut.toDot("CETransducerRes")
     preImageAut
   }
 

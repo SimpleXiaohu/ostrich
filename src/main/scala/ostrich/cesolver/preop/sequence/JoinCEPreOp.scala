@@ -41,7 +41,6 @@ class JoinCEPreOp(connector: String) extends CEPreOp {
     argAut.addSeqElementConnect(argAut.initialState, old2new(res.initialState), emptyUpdate)
     argAut.registers = res.registers
     argAut.regsRelation = res.regsRelation
-    argAut.toDot("joinCEPreOp_" + '"' + connector + '"')
     (Iterator(Seq(argAut)), Seq())
   }
   /** Evaluate the described function; return <code>None</code> if the function is not defined for the given arguments.

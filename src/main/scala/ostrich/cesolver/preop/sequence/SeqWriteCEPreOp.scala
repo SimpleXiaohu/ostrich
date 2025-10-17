@@ -130,10 +130,8 @@ class SeqWriteCEPreOp(i: ITerm) extends CEPreOp {
             },
             IBinJunctor.And
           )
-          preImage.toDot("seqWritePreImage_" + s)
-          strIn.toDot("seqWriteStrIn_" + s)
           strIn.regsRelation = connectSimplify(
-            Seq(res.regsRelation, updateResRegisterF),
+            Seq(res.regsRelation, updateResRegisterF, pre.regsRelation),
             IBinJunctor.And
           )
           Seq(preImage, BricsAutomatonWrapper.makeAnyString(), strIn)

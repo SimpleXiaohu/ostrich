@@ -66,11 +66,6 @@ class UnaryFinalConstraints(
       null
     }
 
-  // if (ParikhUtil.debugOpt) {
-  //   // checkSatAut.toDot(strDataBaseId + "_checkSatAut")
-  //   findModelAut.toDot(strDataBaseId + "_findModelAut")
-  // }
-
   override lazy val getCompleteLIA: IFormula =
     if (!hasRegister) {
       findModelAut.regsRelation

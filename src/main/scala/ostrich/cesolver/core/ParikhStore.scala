@@ -187,10 +187,12 @@ class ParikhStore(
 
   // used to get the product automaton or stored automata
   def getContents: List[CostEnrichedAutomatonBase] =
-    if (flags.eagerAutomataOperations)
+    // ALWAYS use eager option for cea backend, since lazy one may produce 
+    // more registers, causing slower performance
+    // if (flags.eagerAutomataOperations)
       List(productAut)
-    else
-      constraints.toList
+    // else
+    //   constraints.toList
 
   // used to cut off the searching tree
   def getCompleteContents: List[CostEnrichedAutomatonBase] = constraints.toList

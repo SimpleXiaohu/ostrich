@@ -306,7 +306,6 @@ class StringSeqAutomaton extends CostEnrichedAutomatonBase {
   override def getAcceptedWordByRegisters(registersModel: Map[ITerm, Int]): Option[Seq[Int]] = {
     ParikhUtil.log("Finding the accepted word by registers")
     ParikhUtil.log(s"Registers model: $registersModel")
-    this.toDot("getAcceptedWordByRegisters")
     if (registers.isEmpty) return getAcceptedWord
     val registersValues = registers.map(registersModel(_))
     // the state is (s, registersValues)

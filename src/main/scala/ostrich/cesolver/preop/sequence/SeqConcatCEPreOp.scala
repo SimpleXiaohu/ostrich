@@ -22,7 +22,6 @@ class SeqConcatCEPreOp extends CEPreOp {
       resultConstraint: Automaton
   ): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
     val res  = resultConstraint.asInstanceOf[StringSeqAutomaton]
-    res.toDot("seqConcatCEPreOp")
     val arg1 = new StringSeqAutomaton
     val arg2 = new StringSeqAutomaton
     // make sure that the pre-image of right argument begins with seqSplitter

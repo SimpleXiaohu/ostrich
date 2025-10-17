@@ -41,8 +41,6 @@ object SeqFilterCEPreOp {
     val old2newNotMatch = compAut.states.map(s => s -> ceTran.newState).toMap
 
     val sigmaLabel = BricsTLabelOps.sigmaLabel
-    val labelEnumerator = new CETLabelEnumerator(aut.transitions.map(_._2))
-    val completeLabels = labelEnumerator.enumDisjointLabelsComplete
     ceTran.setAccept(notMatch, true)
     // notMatch --> sigma --> notMatch
     ceTran.addTransition(notMatch, sigmaLabel, nop, notMatch)        
@@ -73,8 +71,6 @@ object SeqFilterCEPreOp {
       ceTran.addCTransition(old2newNotMatch(s), nop, failedMatch)
     }
     
-    ceTran.toDot("seqfilterTran")
-    aut.toDot("seqfilterTran_pattern")
     ceTran
   }
 }
@@ -85,7 +81,6 @@ class SeqFilterCEPreOp(tran: CETransducer) extends CEPreOp {
   def apply(argumentConstraints: Seq[Seq[Automaton]], resultConstraint: Automaton): (Iterator[Seq[Automaton]], Seq[Seq[Automaton]]) = {
     val rc = resultConstraint.asInstanceOf[StringSeqAutomaton]
     val preImage = tran.preImage(rc, Seq(), true)
-    preImage.toDot("seqfilter_preimage")
     (Iterator(Seq(preImage)), Seq())
   }
 
